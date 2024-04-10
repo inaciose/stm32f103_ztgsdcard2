@@ -1,3 +1,8 @@
+//
+// v1.01  - firmware status code changed
+//        - mininimum driver/cli 1.03
+//
+
 #include <Arduino.h>
 //#include <SPI.h>
 //#include <SD.h>
@@ -105,26 +110,35 @@ volatile int processing = 0;
 
 // enum state_t {IDLE_S, DIR_S, RFNAME_S, WFNAME_S, DFNAME_S, RFILE_S, WFILE_S, RFILE_E1_S, WFILE_E1_S, DIR_E1_S, DFILE_E1_S};
 #define IDLE_S 0
-#define RFNAME_S 3
+#define RFNAME_S 8
+//#define RFNAME_S 3
 //#define RFARG2_S 12
 //#define IFARG3_S 130
 
-#define WFNAME_S 2
+#define WFNAME_S 16
+//#define WFNAME_S 2
 //#define WFARG2_S 14
 //#define WFARG3_S 15
 
-#define DIR_S 16
+#define DIR_S 32
+#define DIR_E1_S 33
+//#define DIR_S 16
+//#define DIR_E1_S 17
 
-#define RFILE_S 5
-#define RFILE_E1_S 9
+#define RFILE_S 10
+#define RFILE_E1_S 11
+//#define RFILE_S 5
+//#define RFILE_E1_S 9
 
-#define WFILE_S 4
-#define WFILE_E1_S 8
+#define WFILE_S 18
+#define WFILE_E1_S 19
+//#define WFILE_S 4
+//#define WFILE_E1_S 8
 
-#define DFNAME_S 32
-
-#define DIR_E1_S 17
-#define DFILE_E1_S 33
+#define DFNAME_S 40
+#define DFILE_E1_S 41
+//#define DFNAME_S 32
+//#define DFILE_E1_S 33
 
 volatile int state;
 
