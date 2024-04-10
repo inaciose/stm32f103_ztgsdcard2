@@ -1,6 +1,8 @@
 //
 // v1.01  - firmware status code changed
 //        - mininimum driver/cli 1.03
+// v1.02  - add rename, copy & file exist operations
+//        - add mkdir, rmdir & chdir operations
 //
 
 #include <Arduino.h>
@@ -61,6 +63,7 @@ ExFile root;
 #elif SD_FAT_TYPE == 3
 SdFs sd;
 FsFile myfile;
+FsFile myfile1;
 FsFile root;
 #endif  // SD_FAT_TYPE
 
@@ -108,42 +111,15 @@ int dataPins[] = {PD0, PD1, PD2, PD3, PD4, PD5, PD6, PD7};
 //volatile int direction = DIR_IN;
 volatile int processing = 0;
 
-// enum state_t {IDLE_S, DIR_S, RFNAME_S, WFNAME_S, DFNAME_S, RFILE_S, WFILE_S, RFILE_E1_S, WFILE_E1_S, DIR_E1_S, DFILE_E1_S};
-#define IDLE_S 0
-#define RFNAME_S 8
-//#define RFNAME_S 3
-//#define RFARG2_S 12
-//#define IFARG3_S 130
-
-#define WFNAME_S 16
-//#define WFNAME_S 2
-//#define WFARG2_S 14
-//#define WFARG3_S 15
-
-#define DIR_S 32
-#define DIR_E1_S 33
-//#define DIR_S 16
-//#define DIR_E1_S 17
-
-#define RFILE_S 10
-#define RFILE_E1_S 11
-//#define RFILE_S 5
-//#define RFILE_E1_S 9
-
-#define WFILE_S 18
-#define WFILE_E1_S 19
-//#define WFILE_S 4
-//#define WFILE_E1_S 8
-
-#define DFNAME_S 40
-#define DFILE_E1_S 41
-//#define DFNAME_S 32
-//#define DFILE_E1_S 33
+#include "mstatus.h"
 
 volatile int state;
 
 char filename[64] = {0};
 volatile int filename_count = 0;
+
+char filename1[64] = {0};
+volatile int filename1_count = 0;
 
 // file list process
 volatile char dir_lst[2048];
@@ -395,12 +371,15 @@ void cpuWriteCmdReq() {
   switch(state) {
     case IDLE_S:
       switch(dataread) {
+
         case 0xF: // 15
           // reset
           //Serial.println("WC cmd reset");
           state = IDLE_S;
           filename[0] = '\0';
           filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
           // reset file list
           dir_lst[0] = '\0';
           dir_idx = 0;
@@ -449,6 +428,59 @@ void cpuWriteCmdReq() {
           filename_count = 0;
           state = DFNAME_S;
         break;
+
+        case 0x10: // 16
+          // start file rename request
+          //Serial.println("WC cmd start rename file request");
+          filename[0] = '\0';
+          filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
+          state = RNFNAME1_S;
+        break;
+
+        case 0x11: // 17
+          // start file copy request
+          //Serial.println("WC cmd start copy file request");
+          filename[0] = '\0';
+          filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
+          state = CPFNAME1_S;
+        break;
+
+        case 0x12: // 18
+          // start file exist request
+          //Serial.println("WC cmd start exist file request");
+          filename[0] = '\0';
+          filename_count = 0;
+          state = EXFNAME_S;
+        break;
+
+        case 0x13: // 19
+          // start mkdir request
+          //Serial.println("WC cmd start mkdir request");
+          filename[0] = '\0';
+          filename_count = 0;
+          state = MKDNAME_S;
+        break;
+
+        case 0x14: // 20
+          // start rmdir request
+          //Serial.println("WC cmd start rmdir request");
+          filename[0] = '\0';
+          filename_count = 0;
+          state = RMDNAME_S;
+        break;
+
+        case 0x15: // 21
+          // chdir request
+          //Serial.println("WC cmd start chdir request");
+          filename[0] = '\0';
+          filename_count = 0;
+          state = CHDNAME_S;
+        break;
+
       }
     break;
 
@@ -469,6 +501,8 @@ void cpuWriteCmdReq() {
           myfile.close();
           filename[0] = '\0';
           filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
           state = IDLE_S;          
         break;
 
@@ -483,8 +517,14 @@ void cpuWriteCmdReq() {
           state = IDLE_S;
           filename[0] = '\0';
           filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
+          // close files
           if(myfile) {
             myfile.close();
+          }
+          if(myfile1) {
+            myfile1.close();
           }
           // reset file list
           dir_lst[0] = '\0';
@@ -589,6 +629,218 @@ void cpuWriteDataReq() {
       buf[0] = dataread;
       myfile.write(buf, 1);
     break;
+
+    case RNFNAME1_S:
+      //Serial.println("WD RN_FNAME1_S");
+      if(dataread) {
+        // get source file name
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        // already get source file name
+        // now get destination file name
+        // we should check now if file exist
+        // and return error? 
+        // lets go get destination
+        state = RNFNAME2_S;
+      }
+      //Serial.println(filename);
+    break;
+
+    case RNFNAME2_S:
+      //Serial.println("WD RN_FNAME2_S");
+      if(dataread) {
+        // get destination file name
+        filename1[filename1_count] = dataread;
+        filename1[filename1_count + 1 ] = '\0';
+        filename1_count++;
+      } else {
+        // already get source and destionation file name
+
+        // open file, inform if error, and change state
+        //Serial.println(filename);
+        myfile.open(filename, O_WRITE);
+        if (myfile) {
+          if (myfile.rename(filename1)) {
+            // renamed
+            state = WFILE_S;
+          } else {
+            // error state
+            state = RNFILE_E2_S;
+          }
+          myfile.close();
+
+        } else {
+          //Serial.println("RNFILE_E1_S");
+          // error state
+          state = RNFILE_E1_S;
+        }
+        
+        filename[0] = '\0';
+        filename_count = 0;
+        filename1[0] = '\0';
+        filename1_count = 0;
+
+      }
+      //Serial.println(filename);
+      //Serial.println(filename1);
+    break;
+
+    case CPFNAME1_S:
+      //Serial.println("WD CP_FNAME1_S");
+      if(dataread) {
+        // get source file name
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        // already get source file name
+        // now get destination file name
+        // we should check now if file exist
+        // and return error? 
+        // lets go get destination
+        state = CPFNAME2_S;
+      }
+      //Serial.println(filename);
+    break;
+
+    case CPFNAME2_S:
+      //Serial.println("WD RN_FNAME2_S");
+      if(dataread) {
+        // get destination file name
+        filename1[filename1_count] = dataread;
+        filename1[filename1_count + 1 ] = '\0';
+        filename1_count++;
+      } else {
+        // already get source and destionation file name
+
+        if (myfile.open(filename, FILE_READ)) {
+          // source file opeened
+          if (myfile1.open(filename1, O_WRITE | O_CREAT)) {
+            // destination file opeened
+            // copy from src to dst
+
+            //int data;
+            //while ((data = myfile.read()) >= 0) {
+            //  myfile1.write(data);
+            //}
+
+            size_t n;  
+            uint8_t buf[64];
+            while ((n = myfile.read(buf, sizeof(buf))) > 0) {
+              myfile1.write(buf, n);
+            }
+
+            myfile1.close();
+            state = WFILE_S;
+
+          } else {
+            // error opening destination
+            state = CPFILE_E2_S;
+          }
+          
+          myfile.close();
+            
+        } else {
+          // error opening source
+          state = CPFILE_E1_S;
+        }
+         
+        filename[0] = '\0';
+        filename_count = 0;
+        filename1[0] = '\0';
+        filename1_count = 0;
+
+     }
+      //Serial.println(filename);
+      //Serial.println(filename1);
+    break;
+
+    case EXFNAME_S:
+      //Serial.println("WD EXFNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        if (sd.exists(filename)) {
+          state = IDLE_S;
+        } else {
+          // error
+          // the caller should
+          // reset de sdcard iff
+          state = EXFNAME_E1_S;
+        }
+        filename[0] = '\0';
+        filename_count = 0;
+      }
+      //Serial.println(filename);
+    break;
+
+    case MKDNAME_S:
+      //Serial.println("WD MKDNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        // we have the name, now
+        // try to create the directory
+        if (sd.mkdir(filename)) {
+          state = IDLE_S;
+        } else {
+          state = MKDNAME_E1_S;
+        }
+        // clean up
+        filename[0] = '\0';
+        filename_count = 0;
+      }
+      //Serial.println(filename);
+    break;
+
+    case RMDNAME_S:
+      //Serial.println("WD RMDNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        // we have the name, now
+        // try to remove the directory
+        if (sd.rmdir(filename)) {
+          state = IDLE_S;
+        } else {
+          state = RMDNAME_E1_S;
+        }
+        // clean up
+        filename[0] = '\0';
+        filename_count = 0;
+      }
+      //Serial.println(filename);
+    break;
+
+    case CHDNAME_S:
+      //Serial.println("WD CHDNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        // we have the name, now
+        // try to creat the directory
+        if (sd.chdir(filename)) {
+          state = IDLE_S;
+        } else {
+          state = RMDNAME_E1_S;
+        }
+        // clean up
+        filename[0] = '\0';
+        filename_count = 0;
+      }
+      //Serial.println(filename);
+    break;
+
 
     default:
       // do nothing
