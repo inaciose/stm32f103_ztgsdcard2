@@ -5,6 +5,7 @@
 //        - add mkdir, rmdir & chdir operations
 // v1.03  - correction in end statuses of rename & copy
 // v1.04  - solve problem in list dir (bug pointer not reset)
+// v1.04a - minor changes in list dir (use globals vars for filenames)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -127,7 +128,7 @@ volatile char dir_lst[2048];
 volatile int dir_idx = 0;
 volatile int dir_max = 0;
 char dir_fname[64] = {0};
-
+char *dir_fname_ptr = dir_fname;
 
 // pin level operations
 void setupPin();
@@ -1012,45 +1013,22 @@ void setupSDcard() {
 
 void printDirectory(File dir, int numTabs) {
 
-  //int fnlen;
-  //dir.rewind();
+  dir.rewind();
   
   while (myfile.openNext(&dir, O_READ)) {
     
     for (uint8_t i = 0; i < numTabs; i++) {
       dir_lst[dir_max++] = '\t';
       //dir_max++;
-      //Serial.print('\t');
     }
 
-    char *name = dir_fname;
-    myfile.getName(name, 63);
+    dir_fname_ptr = dir_fname;
+    myfile.getName(dir_fname_ptr, 63);
 
-    /*
-    Serial.print(fnlen);
-    Serial.print(" ");
-
-    Serial.print(dir_max);
-    Serial.print(" ");
-
-    Serial.print(dir_idx);
-    Serial.print(" ");
-
-    Serial.println(name);
-    */
-
-    while(*name != '\0') {    
-      dir_lst[dir_max++] = *name;
-      name++;
+    while(*dir_fname_ptr != '\0') {    
+      dir_lst[dir_max++] = *dir_fname_ptr;
+      dir_fname_ptr++;
     }
-    
-    /*
-    Serial.print(dir_max);
-    Serial.print(" ");
-    Serial.print(dir_idx);
-    Serial.print(" ");
-    Serial.println(name);
-    */
 
     if (myfile.isDirectory()) {
       dir_lst[dir_max++] = '/';
@@ -1069,11 +1047,9 @@ void printDirectory(File dir, int numTabs) {
 
     dir_lst[dir_max++] ='\n';
     dir_lst[dir_max++] ='\r';
-    //dir_lst[dir_max] = '\0';
 
     myfile.close();
-    //Serial.println(name);
-
   }
+
   dir_lst[dir_max++] = '\0';
 }
