@@ -4,6 +4,7 @@
 // v1.02  - add rename, copy & file exist operations
 //        - add mkdir, rmdir & chdir operations
 // v1.03  - correction in end statuses of rename & copy
+// v1.04  - solve problem in list dir (bug pointer not reset)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -125,6 +126,8 @@ volatile int filename1_count = 0;
 volatile char dir_lst[2048];
 volatile int dir_idx = 0;
 volatile int dir_max = 0;
+char dir_fname[64] = {0};
+
 
 // pin level operations
 void setupPin();
@@ -212,19 +215,23 @@ void setup() {
 
   setupSDcard();
 
+  
   /*
   Serial.println("SD list !");
   
   root.open("/");
   if(root) {
     printDirectory(root, 0);
-    state = DIR_S;           
-  } else {
-    state = DIR_E1_S;
   }
+  root.close();
 
   Serial.println((char *) dir_lst);
   Serial.println("SD list done.");
+
+  // reset file list
+  dir_lst[0] = '\0';
+  dir_idx = 0;
+  dir_max = 0;
   */
 
   // directory list buffer init
@@ -312,7 +319,7 @@ void cpuReadDataReq() {
     break;
 
     case DIR_S:
-      if(dir_idx < dir_max) { 
+     if(dir_idx < dir_max) { 
         writeDataBus(dir_lst[dir_idx++]); 
         if(dir_idx >= dir_max) {
           // end of dir list
@@ -398,6 +405,10 @@ void cpuWriteCmdReq() {
           root.open("/");
           if(root) {
             printDirectory(root, 0);
+            //Serial.println("list files");
+            //Serial.println((char *) dir_lst);
+            //Serial.println("SD list done.");
+            root.close();
             state = DIR_S;
           } else {
             state = DIR_E1_S;
@@ -998,20 +1009,11 @@ void setupSDcard() {
 }
 */
 
-/*
-void SDCardListFiles() {
-  root = SD.open("/");
-  printDirectory(root, 0);
-  //Serial.println("done!");
-}
-*/
 
 void printDirectory(File dir, int numTabs) {
 
-  char fname[64] = {0};
-  char *name = fname;
-
-  dir.rewind();
+  //int fnlen;
+  //dir.rewind();
   
   while (myfile.openNext(&dir, O_READ)) {
     
@@ -1021,11 +1023,34 @@ void printDirectory(File dir, int numTabs) {
       //Serial.print('\t');
     }
 
+    char *name = dir_fname;
     myfile.getName(name, 63);
+
+    /*
+    Serial.print(fnlen);
+    Serial.print(" ");
+
+    Serial.print(dir_max);
+    Serial.print(" ");
+
+    Serial.print(dir_idx);
+    Serial.print(" ");
+
+    Serial.println(name);
+    */
+
     while(*name != '\0') {    
       dir_lst[dir_max++] = *name;
       name++;
     }
+    
+    /*
+    Serial.print(dir_max);
+    Serial.print(" ");
+    Serial.print(dir_idx);
+    Serial.print(" ");
+    Serial.println(name);
+    */
 
     if (myfile.isDirectory()) {
       dir_lst[dir_max++] = '/';
@@ -1047,6 +1072,8 @@ void printDirectory(File dir, int numTabs) {
     //dir_lst[dir_max] = '\0';
 
     myfile.close();
+    //Serial.println(name);
+
   }
   dir_lst[dir_max++] = '\0';
 }
