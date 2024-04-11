@@ -6,6 +6,7 @@
 // v1.03  - correction in end statuses of rename & copy
 // v1.04  - solve problem in list dir (bug pointer not reset)
 // v1.04a - minor changes in list dir (use globals vars for filenames)
+// v1.04b - chdir fix bugs, operations abslolute and relative
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -67,6 +68,7 @@ SdFs sd;
 FsFile myfile;
 FsFile myfile1;
 FsFile root;
+//FsFile wdir;
 #endif  // SD_FAT_TYPE
 
 //------------------------------------------------------------------------------
@@ -117,7 +119,14 @@ volatile int processing = 0;
 
 volatile int state;
 
-char filename[64] = {0};
+// generic buffer
+char buffer[256] = {0};
+
+// current directory full path
+char directory[256] = {0};
+//char *dirnamestart_ptr = directory + 1;
+
+char filename[256] = {0};
 volatile int filename_count = 0;
 
 char filename1[64] = {0};
@@ -210,9 +219,10 @@ void setup() {
 
   // Open serial communications and wait for port to open:
   Serial.begin(115200);
-  //while (!Serial) {
-  //  ; // wait for serial port to connect. Needed for native USB port only
-  //}
+
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB port only
+  }
 
   setupSDcard();
 
@@ -234,7 +244,10 @@ void setup() {
   dir_idx = 0;
   dir_max = 0;
   */
-
+ 
+  // full directory variable init
+  directory[0] = '/';
+  directory[1] = '\0'; 
   // directory list buffer init
   dir_lst[0] = '\0';
   
@@ -403,12 +416,12 @@ void cpuWriteCmdReq() {
           dir_idx = 0;
           dir_max = 0;
 
-          root.open("/");
+          //root.open("/");
+          //Serial.println(directory);
+          root.open(directory);
           if(root) {
             printDirectory(root, 0);
             //Serial.println("list files");
-            //Serial.println((char *) dir_lst);
-            //Serial.println("SD list done.");
             root.close();
             state = DIR_S;
           } else {
@@ -840,11 +853,52 @@ void cpuWriteDataReq() {
         filename_count++;
       } else {
         // we have the name, now
-        // try to creat the directory
+        // may be ".." process it
+        if(filename[0]=='.' && filename[0]=='.') {
+          strcpy(buffer, directory);
+          char *ptr = strrchr(buffer, '/');
+          *ptr = '\0';
+
+          // store original filename
+          strcpy(filename1, filename);
+
+          // copy parent directory full path to filename
+          strcpy(filename, buffer);
+
+          // add the remaning chars after the ".."
+          char *ptr1 = filename1 + 2;
+          strcat(filename, ptr1);
+
+          // if filename is an empty string add '/'
+          if(!strlen(filename)) {
+            filename[0] = '/';
+            filename[1] = '\0';
+          }
+
+          //Serial.println(filename);
+
+        }
+        // try to change to the directory on filename
         if (sd.chdir(filename)) {
+          // update directory variable
+          if(filename[0]=='/') {
+            // is an absolute path
+            strcpy(directory, filename);
+
+          } else {
+            // is a relative path
+            // test if whe are on root
+            if(strcmp(directory, "/")) {
+              // return != 0, are diferent, not root
+              // add separator
+              strcat(directory, "/");
+            }
+            // add the directory name
+            strcat(directory, filename);
+          }
           state = IDLE_S;
         } else {
-          state = RMDNAME_E1_S;
+          state = CHDNAME_E1_S;
         }
         // clean up
         filename[0] = '\0';
