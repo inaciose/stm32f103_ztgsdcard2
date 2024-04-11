@@ -83,3 +83,9 @@
 #define CHDNAME_S 120
 // error status
 #define CHDNAME_E1_S 121
+
+// get current directory (cd)
+// send full path directory name bytes (ascii), one per cpu request
+#define GETCWD_S 152
+// error status
+#define GETCWD_E1_S 153

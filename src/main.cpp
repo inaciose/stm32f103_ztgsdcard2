@@ -7,6 +7,7 @@
 // v1.04  - solve problem in list dir (bug pointer not reset)
 // v1.04a - minor changes in list dir (use globals vars for filenames)
 // v1.04b - chdir fix bugs, operations abslolute and relative
+// v1.04c - add cwd, get current working directory full path name
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -124,6 +125,9 @@ char buffer[256] = {0};
 
 // current directory full path
 char directory[256] = {0};
+int directory_idx = 0;
+int directory_max = 0;
+
 //char *dirnamestart_ptr = directory + 1;
 
 char filename[256] = {0};
@@ -354,6 +358,27 @@ void cpuReadDataReq() {
       }
     break;
 
+    case GETCWD_S:
+      //Serial.println("CWDD");
+      directory_max = strlen(directory) + 1;
+      if(directory_idx < directory_max) { 
+        writeDataBus(directory[directory_idx++]); 
+        if(directory_idx >= directory_max) {
+          // end of the full path directory name
+          // reset directory send control
+          directory_idx = 0;
+          directory_max = 0;
+          state = IDLE_S;         
+        }
+      } else {
+        // we never come here
+        // reset directory send control
+        directory_idx = 0;
+        directory_max = 0;
+        state = IDLE_S;
+      }
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -401,6 +426,9 @@ void cpuWriteCmdReq() {
           filename_count = 0;
           filename1[0] = '\0';
           filename1_count = 0;
+          // current directory send control
+          directory_idx = 0;
+          directory_max = 0;
           // reset file list
           dir_lst[0] = '\0';
           dir_idx = 0;
@@ -506,7 +534,14 @@ void cpuWriteCmdReq() {
           state = CHDNAME_S;
         break;
 
+
+        case 0x16: // 22
+          // return current directory full path
+          //Serial.println("WC cmd get cwd");
+          state = GETCWD_S;
+        break;
       }
+
     break;
 
     case WFILE_S:
@@ -551,6 +586,11 @@ void cpuWriteCmdReq() {
           if(myfile1) {
             myfile1.close();
           }
+
+          // current directory send control
+          directory_idx = 0;
+          directory_max = 0;
+
           // reset file list
           dir_lst[0] = '\0';
           dir_idx = 0;
