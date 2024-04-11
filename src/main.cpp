@@ -3,7 +3,7 @@
 //        - mininimum driver/cli 1.03
 // v1.02  - add rename, copy & file exist operations
 //        - add mkdir, rmdir & chdir operations
-//
+// v1.03  - correction in end statuses of rename & copy
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -664,7 +664,7 @@ void cpuWriteDataReq() {
         if (myfile) {
           if (myfile.rename(filename1)) {
             // renamed
-            state = WFILE_S;
+            state = IDLE_S;
           } else {
             // error state
             state = RNFILE_E2_S;
@@ -733,7 +733,7 @@ void cpuWriteDataReq() {
             }
 
             myfile1.close();
-            state = WFILE_S;
+            state = IDLE_S;
 
           } else {
             // error opening destination
