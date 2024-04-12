@@ -63,6 +63,8 @@
 // check if a file exists
 // read file name status
 #define EXFNAME_S 128
+// send file status (0 = no exist, 1 = file, 2 = dir)
+#define EXFREPLY_S 130
 // error status
 #define EXFNAME_E1_S 129
 

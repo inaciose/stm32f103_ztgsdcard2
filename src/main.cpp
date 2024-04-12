@@ -8,6 +8,8 @@
 // v1.04a - minor changes in list dir (use globals vars for filenames)
 // v1.04b - chdir fix bugs, operations abslolute and relative
 // v1.04c - add cwd, get current working directory full path name
+// v1.04d - change file exist operation (working)
+
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -143,6 +145,10 @@ volatile int dir_max = 0;
 char dir_fname[64] = {0};
 char *dir_fname_ptr = dir_fname;
 
+
+// file existe response
+int fexist_reply = 0;
+
 // pin level operations
 void setupPin();
 void dPinModeInput();
@@ -248,7 +254,7 @@ void setup() {
   dir_idx = 0;
   dir_max = 0;
   */
- 
+
   // full directory variable init
   directory[0] = '/';
   directory[1] = '\0'; 
@@ -379,6 +385,11 @@ void cpuReadDataReq() {
       }
     break;
 
+    case EXFREPLY_S:
+      writeDataBus(fexist_reply);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -421,7 +432,7 @@ void cpuWriteCmdReq() {
         case 0xF: // 15
           // reset
           //Serial.println("WC cmd reset");
-          state = IDLE_S;
+          fexist_reply = 0;
           filename[0] = '\0';
           filename_count = 0;
           filename1[0] = '\0';
@@ -433,6 +444,7 @@ void cpuWriteCmdReq() {
           dir_lst[0] = '\0';
           dir_idx = 0;
           dir_max = 0;
+          state = IDLE_S;
         break;
 
         case 0xE: // 14
@@ -534,7 +546,6 @@ void cpuWriteCmdReq() {
           state = CHDNAME_S;
         break;
 
-
         case 0x16: // 22
           // return current directory full path
           //Serial.println("WC cmd get cwd");
@@ -574,7 +585,7 @@ void cpuWriteCmdReq() {
         case 0xF: // 15
           // reset
           //Serial.println("WC cmd reset (gbl)");
-          state = IDLE_S;
+          fexist_reply = 0;
           filename[0] = '\0';
           filename_count = 0;
           filename1[0] = '\0';
@@ -595,6 +606,8 @@ void cpuWriteCmdReq() {
           dir_lst[0] = '\0';
           dir_idx = 0;
           dir_max = 0;
+
+          state = IDLE_S;
         break;
       }
     break;
@@ -829,14 +842,30 @@ void cpuWriteDataReq() {
         filename[filename_count + 1 ] = '\0';
         filename_count++;
       } else {
-        if (sd.exists(filename)) {
-          state = IDLE_S;
+        if (sd.exists(filename)) {   
+          // file exists. what type       
+          myfile.open(filename, O_READ);
+          if (myfile) {
+            if (myfile.isDirectory()) {
+              fexist_reply = 2;
+            } else {
+              fexist_reply = 1;
+            }
+            myfile.close();
+            state = EXFREPLY_S;
+          } else {
+            // error opening the file
+            // cannot get type
+            // error state
+            state = GETCWD_E1_S;
+          }
+        // file do not exists
         } else {
-          // error
-          // the caller should
-          // reset de sdcard iff
-          state = EXFNAME_E1_S;
+          fexist_reply = 0;
+          state = EXFREPLY_S;
         }
+
+        // reset filename
         filename[0] = '\0';
         filename_count = 0;
       }
