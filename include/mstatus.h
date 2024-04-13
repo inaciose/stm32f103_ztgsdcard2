@@ -27,10 +27,13 @@
 
 
 // list / dir status
+/// send list/dir bytes (ascii), one per cpu request
+#define DIRNAME_S 32
 // send list/dir bytes (ascii), one per cpu request
-#define DIR_S 32
+#define DIR_S 34
 // error status
 #define DIR_E1_S 33
+#define DIR_E2_S 35
 //#define DIR_S 16
 //#define DIR_E1_S 17
 

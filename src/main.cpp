@@ -9,6 +9,7 @@
 // v1.04b - chdir fix bugs, operations abslolute and relative
 // v1.04c - add cwd, get current working directory full path name
 // v1.04d - change file exist operation (working)
+// v1.04e - change list (add directory as argument)
 
 
 #include <Arduino.h>
@@ -450,23 +451,9 @@ void cpuWriteCmdReq() {
         case 0xE: // 14
           // list files
           //Serial.println("WC cmd list files");
-          
-          // file list process
-          dir_lst[0] = '\0';
-          dir_idx = 0;
-          dir_max = 0;
-
-          //root.open("/");
-          //Serial.println(directory);
-          root.open(directory);
-          if(root) {
-            printDirectory(root, 0);
-            //Serial.println("list files");
-            root.close();
-            state = DIR_S;
-          } else {
-            state = DIR_E1_S;
-          }
+          filename[0] = '\0';
+          filename_count = 0;
+          state = DIRNAME_S;          
 
         break;
 
@@ -697,6 +684,36 @@ void cpuWriteDataReq() {
         } else {
           state = DFILE_E1_S;
         }
+      }
+      //Serial.println(filename);
+    break;
+
+    case DIRNAME_S:
+      //Serial.println("WD DIRNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+          // get file list directory
+          // to a buffer and get ready
+          // to send it byte by byte
+          dir_lst[0] = '\0';
+          dir_idx = 0;
+          dir_max = 0;
+          //Serial.println(filename);
+          if(filename[0] == '\0') {
+            strcpy(filename, directory);
+          }
+          root.open(filename);
+          if(root) {
+            printDirectory(root, 0);
+            //Serial.println("list files");
+            root.close();
+            state = DIR_S;
+          } else {
+            state = DIR_E1_S;
+          }
       }
       //Serial.println(filename);
     break;
