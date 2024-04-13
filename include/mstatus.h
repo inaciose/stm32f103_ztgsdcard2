@@ -94,3 +94,28 @@
 #define GETCWD_S 152
 // error status
 #define GETCWD_E1_S 153
+
+
+//
+//
+//
+
+// open filename
+// read file name status
+#define OFNAME_S 160
+// read file open mode status
+#define OFMODE_S 168
+// write file handle status
+#define OFGHDH_S 176
+// open open status
+#define OFOPEN_S 178
+
+// error status
+#define OFOPEN_E1_S 179
+#define OFMODE_E1_S 169
+
+// close filename
+// read file handle
+#define CFHDL_S 184
+// error status
+#define CFHDL_E1_S 185

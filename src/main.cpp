@@ -10,6 +10,7 @@
 // v1.04c - add cwd, get current working directory full path name
 // v1.04d - change file exist operation (working)
 // v1.04e - change list (add directory as argument)
+// v1.05a - add fileopen & fileclose
 
 
 #include <Arduino.h>
@@ -72,6 +73,9 @@ SdFs sd;
 FsFile myfile;
 FsFile myfile1;
 FsFile root;
+
+FsFile ofile[10];
+
 //FsFile wdir;
 #endif  // SD_FAT_TYPE
 
@@ -146,9 +150,38 @@ volatile int dir_max = 0;
 char dir_fname[64] = {0};
 char *dir_fname_ptr = dir_fname;
 
-
 // file existe response
 int fexist_reply = 0;
+
+//
+// file io
+//
+
+// generic open files data control
+int ofileidx = 0;
+FsFile wofile = ofile[ofileidx];
+
+#define OFMAXNUM 10
+int oftable[10] {0};    // table of open file hdl (ids)
+int ofnumber = 0;       // total number of open files
+int cfileidx = 0;       // current open file in use
+
+// fileopen
+volatile int ofilemode = 0;
+volatile int ofilemode_count = 0;
+char ofilename[256] = {0};
+
+// used to send file handle or error on file open
+int of_error = 0;
+int of_hdl = 0; // send hdl+1 (because 0 is null)
+
+// file close
+int cf_hdl = 0;
+
+
+// fileclose
+
+// fileclose
 
 // pin level operations
 void setupPin();
@@ -256,6 +289,17 @@ void setup() {
   dir_max = 0;
   */
 
+/*
+  Serial.println(O_READ, HEX);
+  Serial.println(O_WRITE, HEX);
+  Serial.println(O_RDWR, HEX);
+  Serial.println(O_APPEND, HEX);
+  Serial.println(O_AT_END, HEX);
+  Serial.println(O_CREAT, HEX);
+  Serial.println(O_EXCL, HEX);
+  Serial.println(O_SYNC, HEX);
+  Serial.println(O_TRUNC, HEX);
+*/
   // full directory variable init
   directory[0] = '/';
   directory[1] = '\0'; 
@@ -352,7 +396,18 @@ void cpuReadDataReq() {
           dir_lst[0] = '\0';
           dir_idx = 0;
           dir_max = 0;
-          state = IDLE_S;         
+
+          state = IDLE_S;
+
+          /*
+          if(ofnumber) {
+            // have file open iddle state
+            state = OFOPEN_S;
+          } else {
+            state = IDLE_S;
+          }
+          */
+                   
         }
       } else {
         // we never come here
@@ -362,6 +417,14 @@ void cpuReadDataReq() {
         dir_idx = 0;
         dir_max = 0;
         state = IDLE_S;
+        /*
+        if(ofnumber) {
+          // have file open iddle state
+          state = OFOPEN_S;
+        } else {
+          state = IDLE_S;
+        }
+        */
       }
     break;
 
@@ -388,6 +451,18 @@ void cpuReadDataReq() {
 
     case EXFREPLY_S:
       writeDataBus(fexist_reply);
+      state = IDLE_S;
+    break;
+
+
+    case OFGHDH_S:
+      if(!of_error) {
+        writeDataBus(of_hdl + 1);
+        //state = OFOPEN_S;
+      } else {
+        writeDataBus(of_hdl);
+        //state = IDLE_S;
+      }
       state = IDLE_S;
     break;
 
@@ -454,7 +529,6 @@ void cpuWriteCmdReq() {
           filename[0] = '\0';
           filename_count = 0;
           state = DIRNAME_S;          
-
         break;
 
         case 0xD: // 13
@@ -538,8 +612,30 @@ void cpuWriteCmdReq() {
           //Serial.println("WC cmd get cwd");
           state = GETCWD_S;
         break;
-      }
 
+        case 0x20: // 32
+          // openfile request
+          //Serial.println("WC cmd start openfile request");
+          if (ofnumber <= OFMAXNUM) {
+            filename[0] = '\0';
+            filename_count = 0;
+            ofilemode = 0;
+            state = OFNAME_S;
+          } else {
+            state = OFOPEN_E1_S;
+          }
+        break;
+
+        case 0x21: // 32
+          // closefile request
+          //Serial.println("WC cmd start closefile request");
+          if (ofnumber |= 0) {
+            state = CFHDL_S;
+          } else {
+            state = CFHDL_E1_S;
+          }
+        break;
+      }
     break;
 
     case WFILE_S:
@@ -566,6 +662,64 @@ void cpuWriteCmdReq() {
 
       }
     break;
+
+    /*
+    case OFOPEN_S:
+      switch(dataread) {
+
+        case 0xE: // 14
+          // list files
+          //Serial.println("WC cmd list files");
+          filename[0] = '\0';
+          filename_count = 0;
+          state = DIRNAME_S;          
+
+        break;
+
+        case 0x20: // 32
+          // openfile request
+          //Serial.println("WC cmd start openfile request");
+          if (ofnumber <= OFMAXNUM) {
+            filename[0] = '\0';
+            filename_count = 0;
+            ofilemode = 0;
+            state = OFNAME_S;
+          } else {
+            state = OFOPEN_E1_S;
+          }
+        break;
+
+        case 0xF: // 15
+          // reset
+          //Serial.println("WC cmd reset (gbl)");
+          fexist_reply = 0;
+          filename[0] = '\0';
+          filename_count = 0;
+          filename1[0] = '\0';
+          filename1_count = 0;
+          // close files
+          if(myfile) {
+            myfile.close();
+          }
+          if(myfile1) {
+            myfile1.close();
+          }
+
+          // current directory send control
+          directory_idx = 0;
+          directory_max = 0;
+
+          // reset file list
+          dir_lst[0] = '\0';
+          dir_idx = 0;
+          dir_max = 0;
+
+          state = IDLE_S;
+        break;
+
+      }
+    break;
+    */
 
     default:
       switch(dataread) {
@@ -720,7 +874,7 @@ void cpuWriteDataReq() {
 
     case WFILE_S:
       //Serial.println("WD WFILE_S");
-      Serial.println(dataread);
+      //Serial.println(dataread);
       buf[0] = dataread;
       myfile.write(buf, 1);
     break;
@@ -993,6 +1147,140 @@ void cpuWriteDataReq() {
       //Serial.println(filename);
     break;
 
+    case OFNAME_S:
+      //Serial.println("WD OFNAME_S");
+      if(dataread) {
+        filename[filename_count] = dataread;
+        filename[filename_count + 1 ] = '\0';
+        filename_count++;
+      } else {
+        strcpy(ofilename, filename);
+        state = OFMODE_S;
+      }
+      //Serial.println(filename);
+    break;
+
+    case OFMODE_S:
+      //Serial.println("WD OFMODE_S");
+      // we have the file name, 
+      // and the file open mode
+
+      if(!ofilemode_count) {
+        // receive high byte
+        ofilemode = dataread;
+        ofilemode_count++;
+        ofilemode = ofilemode << 8;
+
+        Serial.print(dataread, HEX);
+        Serial.print(" ");
+        Serial.println(ofilemode, HEX);
+
+      } else {
+        if(ofilemode_count == 1) {
+          // receive low byte
+          ofilemode = ofilemode | dataread;
+          
+          // reset byte count
+          ofilemode_count = 0;
+
+          Serial.print(dataread, HEX);
+          Serial.print(" ");
+          Serial.println(ofilemode, HEX);
+          Serial.println(ofileidx);
+          Serial.println(ofnumber);
+
+          // set current working open file
+          wofile = ofile[ofileidx];
+
+          if (wofile.open(ofilename, ofilemode)) {
+
+            Serial.println("FILE OPENED");
+
+            // source file opened
+            // prepare OFGHDH_S response
+            of_hdl = ofileidx;
+            of_error = 0;
+            
+            // control opened files
+            oftable[ofileidx] = 1;
+            
+            // control current open file
+            //cfileidx = ofileidx;
+            
+            // select next free index off oftable;
+            int f;
+            for(f = 0; f < OFMAXNUM; f++) {
+              if(!oftable[f]) {
+                ofileidx = f;
+                break;
+              }
+            }
+            
+            // control max open files
+            ofnumber++;
+
+            Serial.println(ofileidx);
+            Serial.println(ofnumber);
+            Serial.println("");
+
+
+            // go to reply handle or null state
+            state = OFGHDH_S;
+
+            // TO BE REMOVED
+            //wofile.close(); 
+
+          } else {
+            // error opening source
+            // prepare OFGHDH_S response
+
+            Serial.println("ERROR ON FILE OPEN");
+
+            // restore current working open file
+            //wofile = ofile[cfileidx];
+
+            of_hdl = 0;
+            of_error = OFOPEN_E1_S;
+            state = OFGHDH_S;
+          }
+        } else {
+          // notthing more to receive
+          //ofilemode_count = 0;
+        }
+      }
+      
+
+      //state = OFGHDH_S;
+
+      //Serial.println(filename);
+    break;
+
+    case CFHDL_S:
+      //Serial.println("WD CFHDL_S");
+      Serial.println("FILE close");
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          wofile = ofile[cf_hdl];
+          wofile.close();
+
+          // update open files control
+          oftable[cf_hdl] = 0;
+          ofnumber--;
+
+          Serial.println(ofnumber);
+
+          state = IDLE_S;
+
+        } else {
+          // slot is not marked as used
+          state = CFHDL_E1_S;
+        }
+      } else {
+        state = CFHDL_E1_S;
+      }
+    break;
 
     default:
       // do nothing
@@ -1135,21 +1423,6 @@ void setupSDcard() {
   }
 
 }
-
-/*
-void setupSDcard() {
-  Serial.print("Initializing SD card...");
-  if (!SD.begin(PA4)) {
-    Serial.println("initialization failed!");
-    while (1)
-    {
-      Serial.println("initialization failed!");
-    };
-  }
-  Serial.println("initialization done.");
-}
-*/
-
 
 void printDirectory(File dir, int numTabs) {
 
