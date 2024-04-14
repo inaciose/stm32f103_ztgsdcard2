@@ -13,6 +13,7 @@
 // v1.05a - add fileopen & fileclose
 // v1.05b - add fwrite (byte)
 // v1.05c - add fread(byte)
+// v1.05d - add fgetpos 
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -155,7 +156,7 @@ char *dir_fname_ptr = dir_fname;
 int fexist_reply = 0;
 
 // generic response
-volatile int lastop_status = 0;
+volatile int lastop_result = 0;
 //
 // file io
 //
@@ -182,7 +183,8 @@ int of_hdl = 0; // send hdl+1 (because 0 is null)
 int cf_hdl = 0;
 
 
-// fileclose
+// counter for multi byte response
+volatile int bytecounter = 0;
 
 // fileclose
 
@@ -470,14 +472,14 @@ void cpuReadDataReq() {
     break;
 
     case FWRITERES_S:
-      writeDataBus(lastop_status);
+      writeDataBus(lastop_result);
       state = IDLE_S;
     break;
 
     case FREAD_S:
       //myfile.read(buf, 1);
-      lastop_status = ofile[cfileidx].read(buf, 1);
-      if(lastop_status > 0) {
+      lastop_result = ofile[cfileidx].read(buf, 1);
+      if(lastop_result > 0) {
         writeDataBus(buf[0]);
       } else {
         writeDataBus(0);
@@ -486,9 +488,23 @@ void cpuReadDataReq() {
     break;
 
     case FREADRES_S:
-      writeDataBus(lastop_status);
+      writeDataBus(lastop_result);
       state = IDLE_S;
     break;
+
+    case FGETPOS_S:
+      if(bytecounter < 4) {
+        writeDataBus(lastop_result);
+        bytecounter++;
+        if(bytecounter == 4) {
+          bytecounter = 0;
+          state = IDLE_S;
+        } else {
+          lastop_result = lastop_result >> 8;
+        }
+      }
+    break;
+
 
     default:
       // nothing to do
@@ -680,6 +696,15 @@ void cpuWriteCmdReq() {
           }
         break;
 
+        case 0x24: // 32
+          // get file pos request
+          //Serial.println("WC cmd start write byte request");
+          if (ofnumber |= 0) {
+            state = FGETPOS_HDL_S;
+          } else {
+            state = FGETPOS_HDL_E1_S;
+          }
+        break;
       }
     break;
 
@@ -1358,7 +1383,7 @@ void cpuWriteDataReq() {
       //Serial.println("WD WFILE_S");
       //Serial.println(dataread);
       buf[0] = dataread;
-      lastop_status = ofile[cfileidx].write(buf, 1);
+      lastop_result = ofile[cfileidx].write(buf, 1);
       state = FWRITERES_S;
     break;
 
@@ -1386,6 +1411,34 @@ void cpuWriteDataReq() {
       }
 
     break;
+
+    case FGETPOS_HDL_S:
+      //Serial.println("WD FGETPOS_HDL_S");
+      //Serial.println(dataread);
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            lastop_result = ofile[cfileidx].curPosition();
+            bytecounter = 0;
+            state = FGETPOS_S;
+          } else {
+            Serial.println("isOpen failed");
+            state = FGETPOS_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FGETPOS_HDL_E1_S;
+        }
+      } else {
+        state = FGETPOS_HDL_E1_S;
+      }
+
+    break;
+
     default:
       // do nothing
     break;

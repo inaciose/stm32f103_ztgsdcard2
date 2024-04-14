@@ -142,4 +142,15 @@
 // error status
 #define FREAD_HDL_E1_S 201
 #define FREAD_E1_S 203
-//#define FWRITERES_E1_S 197
+//#define FREADRES_E1_S 205
+
+// get file pos
+// read file handle
+#define FGETPOS_HDL_S 208
+// read byte from file status
+#define FGETPOS_S 210
+// operation result status
+//#define FFGETPOSRES_S 204
+// error status
+#define FGETPOS_HDL_E1_S 209
+#define FGETPOS_E1_S 211
