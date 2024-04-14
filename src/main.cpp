@@ -11,6 +11,7 @@
 // v1.04d - change file exist operation (working)
 // v1.04e - change list (add directory as argument)
 // v1.05a - add fileopen & fileclose
+// v1.05b - add fwrite (byte)
 
 
 #include <Arduino.h>
@@ -153,13 +154,15 @@ char *dir_fname_ptr = dir_fname;
 // file existe response
 int fexist_reply = 0;
 
+// generic response
+volatile int lastop_status = 0;
 //
 // file io
 //
 
 // generic open files data control
 int ofileidx = 0;
-FsFile wofile = ofile[ofileidx];
+//FsFile wofile = ofile[ofileidx];
 
 #define OFMAXNUM 10
 int oftable[10] {0};    // table of open file hdl (ids)
@@ -466,6 +469,11 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+    case FWRITERES_S:
+      writeDataBus(lastop_status);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -635,6 +643,17 @@ void cpuWriteCmdReq() {
             state = CFHDL_E1_S;
           }
         break;
+
+        case 0x22: // 32
+          // file write byte request
+          //Serial.println("WC cmd start write byte request");
+          if (ofnumber |= 0) {
+            state = FWRITE_HDL_S;
+          } else {
+            state = FWRITE_HDL_E1_S;
+          }
+        break;
+
       }
     break;
 
@@ -1190,9 +1209,9 @@ void cpuWriteDataReq() {
           Serial.println(ofnumber);
 
           // set current working open file
-          wofile = ofile[ofileidx];
+          //wofile = ofile[ofileidx];
 
-          if (wofile.open(ofilename, ofilemode)) {
+          if (ofile[ofileidx].open(ofilename, ofilemode)) {
 
             Serial.println("FILE OPENED");
 
@@ -1205,7 +1224,7 @@ void cpuWriteDataReq() {
             oftable[ofileidx] = 1;
             
             // control current open file
-            //cfileidx = ofileidx;
+            cfileidx = ofileidx;
             
             // select next free index off oftable;
             int f;
@@ -1262,8 +1281,12 @@ void cpuWriteDataReq() {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
           // slot is marked as used with a file open
-          wofile = ofile[cf_hdl];
-          wofile.close();
+
+
+          ofile[ofileidx].close();
+
+          //wofile = ofile[cf_hdl];
+         // wofile.close();
 
           // update open files control
           oftable[cf_hdl] = 0;
@@ -1280,6 +1303,44 @@ void cpuWriteDataReq() {
       } else {
         state = CFHDL_E1_S;
       }
+    break;
+
+    case FWRITE_HDL_S:
+      //Serial.println("WD FWRITE_HDL_S");
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          //wofile.close();
+          if(ofile[cfileidx].isOpen()) {
+            state = FWRITE_S;
+          } else {
+            Serial.println("isOpen failed");
+            state = FWRITE_E1_S;
+          }
+          //wofile.isOpen();
+
+          // update open files control
+          //oftable[cf_hdl] = 0;
+          //ofnumber--;
+          //Serial.println(ofnumber);
+
+        } else {
+          // slot is not marked as used
+          state = FWRITE_HDL_E1_S;
+        }
+      } else {
+        state = FWRITE_HDL_E1_S;
+      }
+    break;
+
+    case FWRITE_S:
+      //Serial.println("WD WFILE_S");
+      //Serial.println(dataread);
+      buf[0] = dataread;
+      lastop_status = ofile[cfileidx].write(buf, 1);
+      state = FWRITERES_S;
     break;
 
     default:

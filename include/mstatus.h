@@ -107,7 +107,7 @@
 #define OFMODE_S 168
 // write file handle status
 #define OFGHDH_S 176
-// open open status
+// open file status
 #define OFOPEN_S 178
 
 // error status
@@ -119,3 +119,15 @@
 #define CFHDL_S 184
 // error status
 #define CFHDL_E1_S 185
+
+// write a byte
+// read file handle
+#define FWRITE_HDL_S 192
+// write byte to file status
+#define FWRITE_S 194
+// operation result status
+#define FWRITERES_S 196
+// error status
+#define FWRITE_HDL_E1_S 193
+#define FWRITE_E1_S 195
+#define FWRITERES_E1_S 197
