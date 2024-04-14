@@ -131,3 +131,15 @@
 #define FWRITE_HDL_E1_S 193
 #define FWRITE_E1_S 195
 #define FWRITERES_E1_S 197
+
+// read a byte
+// read file handle
+#define FREAD_HDL_S 200
+// read byte from file status
+#define FREAD_S 202
+// operation result status
+#define FREADRES_S 204
+// error status
+#define FREAD_HDL_E1_S 201
+#define FREAD_E1_S 203
+//#define FWRITERES_E1_S 197

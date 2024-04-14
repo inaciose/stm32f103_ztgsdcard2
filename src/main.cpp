@@ -12,7 +12,7 @@
 // v1.04e - change list (add directory as argument)
 // v1.05a - add fileopen & fileclose
 // v1.05b - add fwrite (byte)
-
+// v1.05c - add fread(byte)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -474,6 +474,22 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+    case FREAD_S:
+      //myfile.read(buf, 1);
+      lastop_status = ofile[cfileidx].read(buf, 1);
+      if(lastop_status > 0) {
+        writeDataBus(buf[0]);
+      } else {
+        writeDataBus(0);
+      }
+      state = FREADRES_S;
+    break;
+
+    case FREADRES_S:
+      writeDataBus(lastop_status);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -651,6 +667,16 @@ void cpuWriteCmdReq() {
             state = FWRITE_HDL_S;
           } else {
             state = FWRITE_HDL_E1_S;
+          }
+        break;
+
+        case 0x23: // 32
+          // file write byte request
+          //Serial.println("WC cmd start write byte request");
+          if (ofnumber |= 0) {
+            state = FREAD_HDL_S;
+          } else {
+            state = FREAD_HDL_E1_S;
           }
         break;
 
@@ -1312,20 +1338,13 @@ void cpuWriteDataReq() {
         if(oftable[cf_hdl]) {
           // slot is marked as used with a file open
           cfileidx = cf_hdl;
-          //wofile.close();
+          // check if file is open
           if(ofile[cfileidx].isOpen()) {
             state = FWRITE_S;
           } else {
             Serial.println("isOpen failed");
             state = FWRITE_E1_S;
           }
-          //wofile.isOpen();
-
-          // update open files control
-          //oftable[cf_hdl] = 0;
-          //ofnumber--;
-          //Serial.println(ofnumber);
-
         } else {
           // slot is not marked as used
           state = FWRITE_HDL_E1_S;
@@ -1343,6 +1362,30 @@ void cpuWriteDataReq() {
       state = FWRITERES_S;
     break;
 
+    case FREAD_HDL_S:
+      //Serial.println("WD FREAD_HDL_S");
+      //Serial.println(dataread);
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            state = FREAD_S;
+          } else {
+            Serial.println("isOpen failed");
+            state = FREAD_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FREAD_HDL_E1_S;
+        }
+      } else {
+        state = FREAD_HDL_E1_S;
+      }
+
+    break;
     default:
       // do nothing
     break;
