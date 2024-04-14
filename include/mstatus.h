@@ -154,3 +154,15 @@
 // error status
 #define FGETPOS_HDL_E1_S 209
 #define FGETPOS_E1_S 211
+
+
+// set file pos (absolute)
+// read file handle
+#define FSEEKSET_HDL_S 216
+// read byte from file status
+#define FSEEKSET_S 218
+// operation result status
+#define FSEEKSETRES_S 220
+// error status
+#define FSEEKSET_HDL_E1_S 217
+#define FSEEKSET_E1_S 219

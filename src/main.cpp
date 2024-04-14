@@ -14,6 +14,7 @@
 // v1.05b - add fwrite (byte)
 // v1.05c - add fread(byte)
 // v1.05d - add fgetpos 
+// v1.05e - add seekset 
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -182,11 +183,13 @@ int of_hdl = 0; // send hdl+1 (because 0 is null)
 // file close
 int cf_hdl = 0;
 
-
 // counter for multi byte response
 volatile int bytecounter = 0;
 
-// fileclose
+// set file position
+volatile int wrkfileposition = 0;
+volatile int tmpfileposition = 0;
+
 
 // pin level operations
 void setupPin();
@@ -505,6 +508,10 @@ void cpuReadDataReq() {
       }
     break;
 
+    case FSEEKSETRES_S:
+      writeDataBus(lastop_result);
+      state = IDLE_S;
+    break;
 
     default:
       // nothing to do
@@ -703,6 +710,16 @@ void cpuWriteCmdReq() {
             state = FGETPOS_HDL_S;
           } else {
             state = FGETPOS_HDL_E1_S;
+          }
+        break;
+
+        case 0x25: // 32
+          // file pos seekset request
+          //Serial.println("WC cmd start seekset request");
+          if (ofnumber |= 0) {
+            state = FSEEKSET_HDL_S;
+          } else {
+            state = FSEEKSET_HDL_E1_S;
           }
         break;
       }
@@ -1438,6 +1455,54 @@ void cpuWriteDataReq() {
       }
 
     break;
+
+    case FSEEKSET_HDL_S:
+      //Serial.println("WD FSEEKSET_HDL_S");
+      //Serial.println(dataread);
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            //lastop_result = ofile[cfileidx].curPosition();
+            wrkfileposition = 0;
+            //tmpfileposition = 0;
+            bytecounter = 0;
+            state = FSEEKSET_S;
+          } else {
+            Serial.println("isOpen failed");
+            state = FSEEKSET_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FGETPOS_HDL_E1_S;
+        }
+      } else {
+        state = FGETPOS_HDL_E1_S;
+      }
+    break;
+
+    case FSEEKSET_S:
+      //Serial.println("WD FSEEKSET_S");
+      //Serial.println(dataread);
+      if(bytecounter < 4) {
+        //tmpfileposition = dataread;
+        wrkfileposition = wrkfileposition | dataread;
+        if(bytecounter < 3) {
+          wrkfileposition = wrkfileposition << 8;
+        }
+        bytecounter++;
+        if(bytecounter == 4) {
+          lastop_result = ofile[cfileidx].seekSet(wrkfileposition);
+          wrkfileposition = 0;
+          bytecounter = 0;
+          state = FSEEKSETRES_S;
+        }
+      }
+    break;
+
 
     default:
       // do nothing
