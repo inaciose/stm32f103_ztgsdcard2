@@ -144,6 +144,17 @@
 #define FREAD_E1_S 203
 //#define FREADRES_E1_S 205
 
+// peak a byte
+// read file handle
+#define FPEEK_HDL_S 240
+// read byte from file status
+#define FPEEK_S 242
+// operation result status
+//#define FREWINDRES_S 236
+// error status
+#define FPEEK_HDL_E1_S 241
+#define FPEEK_E1_S 243
+
 // get file pos
 // read file handle
 #define FGETPOS_HDL_S 208

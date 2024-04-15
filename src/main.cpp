@@ -17,6 +17,7 @@
 // v1.05e - add seekset
 // v1.05f - add seekcur & seekend
 // v1.05g - add rewind
+// v1.05h - add peek
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -525,6 +526,11 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+    case FPEEK_S:
+      writeDataBus(lastop_result);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -762,6 +768,16 @@ void cpuWriteCmdReq() {
             state = FREWIND_HDL_S;
           } else {
             state = FREWIND_HDL_E1_S;
+          }
+        break;
+
+        case 0x29: // 32
+          // file peek request
+          //Serial.println("WC cmd start peek request");
+          if (ofnumber |= 0) {
+            state = FPEEK_HDL_S;
+          } else {
+            state = FPEEK_HDL_E1_S;
           }
         break;
 
@@ -1641,6 +1657,32 @@ void cpuWriteDataReq() {
         state = FSEEKEND_HDL_E1_S;
       }
     break;
+
+    case FPEEK_HDL_S:
+      //Serial.println("WD FREWIND_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            lastop_result = ofile[cfileidx].peek();
+            state = FPEEK_S;
+          } else {
+            state = FPEEK_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FPEEK_HDL_E1_S;
+        }
+      } else {
+        state = FPEEK_HDL_E1_S;
+      }
+    break;
+
 
     default:
       // do nothing
