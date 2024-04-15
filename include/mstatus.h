@@ -156,7 +156,7 @@
 #define FGETPOS_E1_S 211
 
 
-// set file pos (absolute)
+// set file pos (absolute start)
 // read file handle
 #define FSEEKSET_HDL_S 216
 // read byte from file status
@@ -166,3 +166,25 @@
 // error status
 #define FSEEKSET_HDL_E1_S 217
 #define FSEEKSET_E1_S 219
+
+// set file pos (relative)
+// read file handle
+#define FSEEKCUR_HDL_S 224
+// read byte from file status
+#define FSEEKCUR_S 226
+// operation result status
+#define FSEEKCURRES_S 228
+// error status
+#define FSEEKCUR_HDL_E1_S 225
+#define FSEEKCUR_E1_S 227
+
+// set file pos (absolute end)
+// read file handle
+#define FSEEKEND_HDL_S 232
+// read byte from file status
+#define FSEEKEND_S 234
+// operation result status
+#define FSEEKENDRES_S 236
+// error status
+#define FSEEKEND_HDL_E1_S 233
+#define FSEEKEND_E1_S 235

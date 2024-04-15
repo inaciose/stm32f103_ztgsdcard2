@@ -14,7 +14,8 @@
 // v1.05b - add fwrite (byte)
 // v1.05c - add fread(byte)
 // v1.05d - add fgetpos 
-// v1.05e - add seekset 
+// v1.05e - add seekset
+// v1.05f - add seekcur & seekend
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -513,6 +514,16 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+    case FSEEKCURRES_S:
+      writeDataBus(lastop_result);
+      state = IDLE_S;
+    break;
+
+    case FSEEKENDRES_S:
+      writeDataBus(lastop_result);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -722,6 +733,27 @@ void cpuWriteCmdReq() {
             state = FSEEKSET_HDL_E1_S;
           }
         break;
+
+        case 0x26: // 32
+          // file pos seekcur request
+          //Serial.println("WC cmd start seekcur request");
+          if (ofnumber |= 0) {
+            state = FSEEKCUR_HDL_S;
+          } else {
+            state = FSEEKCUR_HDL_E1_S;
+          }
+        break;
+
+        case 0x27: // 32
+          // file pos seekend request
+          //Serial.println("WC cmd start seekend request");
+          if (ofnumber |= 0) {
+            state = FSEEKEND_HDL_S;
+          } else {
+            state = FSEEKEND_HDL_E1_S;
+          }
+        break;
+
       }
     break;
 
@@ -1314,17 +1346,11 @@ void cpuWriteDataReq() {
             // go to reply handle or null state
             state = OFGHDH_S;
 
-            // TO BE REMOVED
-            //wofile.close(); 
-
           } else {
             // error opening source
             // prepare OFGHDH_S response
 
             Serial.println("ERROR ON FILE OPEN");
-
-            // restore current working open file
-            //wofile = ofile[cfileidx];
 
             of_hdl = 0;
             of_error = OFOPEN_E1_S;
@@ -1335,26 +1361,17 @@ void cpuWriteDataReq() {
           //ofilemode_count = 0;
         }
       }
-      
-
-      //state = OFGHDH_S;
-
-      //Serial.println(filename);
     break;
 
     case CFHDL_S:
       //Serial.println("WD CFHDL_S");
+      // receive the file handler (file id)
       Serial.println("FILE close");
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
           // slot is marked as used with a file open
-
-
           ofile[ofileidx].close();
-
-          //wofile = ofile[cf_hdl];
-         // wofile.close();
 
           // update open files control
           oftable[cf_hdl] = 0;
@@ -1375,6 +1392,7 @@ void cpuWriteDataReq() {
 
     case FWRITE_HDL_S:
       //Serial.println("WD FWRITE_HDL_S");
+      // receive the file handler (file id)
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
@@ -1384,7 +1402,6 @@ void cpuWriteDataReq() {
           if(ofile[cfileidx].isOpen()) {
             state = FWRITE_S;
           } else {
-            Serial.println("isOpen failed");
             state = FWRITE_E1_S;
           }
         } else {
@@ -1398,7 +1415,6 @@ void cpuWriteDataReq() {
 
     case FWRITE_S:
       //Serial.println("WD WFILE_S");
-      //Serial.println(dataread);
       buf[0] = dataread;
       lastop_result = ofile[cfileidx].write(buf, 1);
       state = FWRITERES_S;
@@ -1406,7 +1422,7 @@ void cpuWriteDataReq() {
 
     case FREAD_HDL_S:
       //Serial.println("WD FREAD_HDL_S");
-      //Serial.println(dataread);
+      // receive the file handler (file id)
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
@@ -1416,7 +1432,6 @@ void cpuWriteDataReq() {
           if(ofile[cfileidx].isOpen()) {
             state = FREAD_S;
           } else {
-            Serial.println("isOpen failed");
             state = FREAD_E1_S;
           }
         } else {
@@ -1431,7 +1446,7 @@ void cpuWriteDataReq() {
 
     case FGETPOS_HDL_S:
       //Serial.println("WD FGETPOS_HDL_S");
-      //Serial.println(dataread);
+      // receive the file handler (file id)
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
@@ -1443,7 +1458,6 @@ void cpuWriteDataReq() {
             bytecounter = 0;
             state = FGETPOS_S;
           } else {
-            Serial.println("isOpen failed");
             state = FGETPOS_E1_S;
           }
         } else {
@@ -1458,7 +1472,7 @@ void cpuWriteDataReq() {
 
     case FSEEKSET_HDL_S:
       //Serial.println("WD FSEEKSET_HDL_S");
-      //Serial.println(dataread);
+      // receive the file handler (file id)
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
@@ -1472,7 +1486,6 @@ void cpuWriteDataReq() {
             bytecounter = 0;
             state = FSEEKSET_S;
           } else {
-            Serial.println("isOpen failed");
             state = FSEEKSET_E1_S;
           }
         } else {
@@ -1486,9 +1499,9 @@ void cpuWriteDataReq() {
 
     case FSEEKSET_S:
       //Serial.println("WD FSEEKSET_S");
-      //Serial.println(dataread);
+      // receive the offset then 
+      // set absolute position on file
       if(bytecounter < 4) {
-        //tmpfileposition = dataread;
         wrkfileposition = wrkfileposition | dataread;
         if(bytecounter < 3) {
           wrkfileposition = wrkfileposition << 8;
@@ -1503,6 +1516,95 @@ void cpuWriteDataReq() {
       }
     break;
 
+    case FSEEKCUR_HDL_S:
+      //Serial.println("WD FSEEKSET_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            wrkfileposition = 0;
+            bytecounter = 0;
+            state = FSEEKCUR_S;
+          } else {
+            state = FSEEKCUR_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FSEEKCUR_HDL_E1_S;
+        }
+      } else {
+        state = FSEEKCUR_HDL_E1_S;
+      }
+    break;
+
+    case FSEEKCUR_S:
+      //Serial.println("WD FSEEKSET_S");
+      // receive the offset then 
+      // set relative position on file
+      if(bytecounter < 4) {
+        wrkfileposition = wrkfileposition | dataread;
+        if(bytecounter < 3) {
+          wrkfileposition = wrkfileposition << 8;
+        }
+        bytecounter++;
+        if(bytecounter == 4) {
+          lastop_result = ofile[cfileidx].seekCur(wrkfileposition);
+          wrkfileposition = 0;
+          bytecounter = 0;
+          state = FSEEKCURRES_S;
+        }
+      }
+    break;
+
+    case FSEEKEND_HDL_S:
+      //Serial.println("WD FSEEKSET_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            wrkfileposition = 0;
+            bytecounter = 0;
+            state = FSEEKEND_S;
+          } else {
+            state = FSEEKEND_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FSEEKEND_HDL_E1_S;
+        }
+      } else {
+        state = FSEEKEND_HDL_E1_S;
+      }
+    break;
+
+    case FSEEKEND_S:
+      //Serial.println("WD FSEEKSET_S");
+      // receive the offset then 
+      // set relative position on file
+      if(bytecounter < 4) {
+        wrkfileposition = wrkfileposition | dataread;
+        if(bytecounter < 3) {
+          wrkfileposition = wrkfileposition << 8;
+        }
+        bytecounter++;
+        if(bytecounter == 4) {
+          lastop_result = ofile[cfileidx].seekEnd(wrkfileposition);
+          wrkfileposition = 0;
+          bytecounter = 0;
+          state = FSEEKENDRES_S;
+        }
+      }
+    break;
 
     default:
       // do nothing
