@@ -188,3 +188,14 @@
 // error status
 #define FSEEKEND_HDL_E1_S 233
 #define FSEEKEND_E1_S 235
+
+// set file pos (rewind)
+// read file handle
+#define FREWIND_HDL_S 238
+// read byte from file status
+//#define FREWIND_S 234
+// operation result status
+//#define FREWINDRES_S 236
+// error status
+#define FREWIND_HDL_E1_S 233
+//#define FREWIND_E1_S 235

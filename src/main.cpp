@@ -16,6 +16,7 @@
 // v1.05d - add fgetpos 
 // v1.05e - add seekset
 // v1.05f - add seekcur & seekend
+// v1.05g - add rewind
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -751,6 +752,16 @@ void cpuWriteCmdReq() {
             state = FSEEKEND_HDL_S;
           } else {
             state = FSEEKEND_HDL_E1_S;
+          }
+        break;
+
+        case 0x28: // 32
+          // file pos rewind request
+          //Serial.println("WC cmd start rewind request");
+          if (ofnumber |= 0) {
+            state = FREWIND_HDL_S;
+          } else {
+            state = FREWIND_HDL_E1_S;
           }
         break;
 
@@ -1603,6 +1614,31 @@ void cpuWriteDataReq() {
           bytecounter = 0;
           state = FSEEKENDRES_S;
         }
+      }
+    break;
+
+    case FREWIND_HDL_S:
+      //Serial.println("WD FREWIND_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            ofile[cfileidx].rewind();
+            state = IDLE_S;
+          } else {
+            state = FSEEKEND_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FSEEKEND_HDL_E1_S;
+        }
+      } else {
+        state = FSEEKEND_HDL_E1_S;
       }
     break;
 
