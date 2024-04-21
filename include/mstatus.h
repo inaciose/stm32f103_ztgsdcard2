@@ -4,96 +4,85 @@
 // read file
 //myfile.open(filename, O_RDONLY);
 // read file name status
-#define RFNAME_S 8
+#define RFNAME_S 2
 // read file contents status
-#define RFILE_S 10
+#define RFILE_S 4
 // error status
-#define RFILE_E1_S 11
-//#define RFNAME_S 3
-//#define RFILE_S 5
-//#define RFILE_E1_S 9
+#define RFILE_E1_S 5
 
 // write file (save)
 // myfile.open(filename, O_WRITE | O_CREAT);
 // read file name status
-#define WFNAME_S 16
+#define WFNAME_S 6
 // write to file status
-#define WFILE_S 18
+#define WFILE_S 8
 //error status
-#define WFILE_E1_S 19
-//#define WFNAME_S 2
-//#define WFILE_S 4
-//#define WFILE_E1_S 8
-
+#define WFILE_E1_S 9
 
 // list / dir status
 /// send list/dir bytes (ascii), one per cpu request
-#define DIRNAME_S 32
+#define DIRNAME_S 10
 // send list/dir bytes (ascii), one per cpu request
-#define DIR_S 34
+#define DIR_S 12
 // error status
-#define DIR_E1_S 33
-#define DIR_E2_S 35
-//#define DIR_S 16
-//#define DIR_E1_S 17
+#define DIR_E1_S 11
+#define DIR_E2_S 13
 
 // delete a file
 // read file name status
-#define DFNAME_S 40
+#define DFNAME_S 14
 // error status
-#define DFILE_E1_S 41
-//#define DFNAME_S 32
-//#define DFILE_E1_S 33
+#define DFILE_E1_S 15
 
 // rename a file
 // read origin file name status
-#define RNFNAME1_S 48
+#define RNFNAME1_S 16
 // read destination file name status
-#define RNFNAME2_S 56
+#define RNFNAME2_S 18
 // error status
-#define RNFILE_E1_S 49
-#define RNFILE_E2_S 57
+#define RNFILE_E1_S 17
+#define RNFILE_E2_S 19
 
 // copy a file
 // read origin file name status
-#define CPFNAME1_S 64
+#define CPFNAME1_S 20
 // read destination file name status
-#define CPFNAME2_S 72
+#define CPFNAME2_S 22
 // error status
-#define CPFILE_E1_S 65
-#define CPFILE_E2_S 73
+#define CPFILE_E1_S 21
+#define CPFILE_E2_S 23
 
 // check if a file exists
 // read file name status
-#define EXFNAME_S 128
+#define EXFNAME_S 24
 // send file status (0 = no exist, 1 = file, 2 = dir)
-#define EXFREPLY_S 130
+#define EXFREPLY_S 26
 // error status
-#define EXFNAME_E1_S 129
+#define EXFNAME_E1_S 25
 
 // make a new directory
 // read directory name status
-#define MKDNAME_S 80
+#define MKDNAME_S 28
 // error status
-#define MKDNAME_E1_S 81
+#define MKDNAME_E1_S 29
 
 // remove a directory (rmdir)
 // read directory name status
-#define RMDNAME_S 88
+#define RMDNAME_S 30
 // error status
-#define RMDNAME_E1_S 89
+#define RMDNAME_E1_S 31
 
 // change current directory (cd)
 // read directory name status
-#define CHDNAME_S 120
+#define CHDNAME_S 32
 // error status
-#define CHDNAME_E1_S 121
+#define CHDNAME_E1_S 33
 
 // get current directory (cd)
 // send full path directory name bytes (ascii), one per cpu request
-#define GETCWD_S 152
+#define GETCWD_S 34
 // error status
-#define GETCWD_E1_S 153
+#define GETCWD_E1_S 35
 
 
 //
@@ -102,111 +91,104 @@
 
 // open filename
 // read file name status
-#define OFNAME_S 160
+#define OFNAME_S 36
 // read file open mode status
-#define OFMODE_S 168
+#define OFMODE_S 38
 // write file handle status
-#define OFGHDH_S 176
+#define OFGHDH_S 40
 // open file status
-#define OFOPEN_S 178
+//#define OFOPEN_S 178
 
 // error status
-#define OFOPEN_E1_S 179
-#define OFMODE_E1_S 169
+#define OFOPEN_E1_S 41
 
 // close filename
 // read file handle
-#define CFHDL_S 184
+#define CFHDL_S 42
 // error status
-#define CFHDL_E1_S 185
+#define CFHDL_E1_S 43
 
 // write a byte
 // read file handle
-#define FWRITE_HDL_S 192
+#define FWRITE_HDL_S 44
 // write byte to file status
-#define FWRITE_S 194
+#define FWRITE_S 46
 // operation result status
-#define FWRITERES_S 196
+#define FWRITERES_S 48
 // error status
-#define FWRITE_HDL_E1_S 193
-#define FWRITE_E1_S 195
-#define FWRITERES_E1_S 197
+#define FWRITE_HDL_E1_S 45
+#define FWRITE_E1_S 47
+#define FWRITERES_E1_S 49
 
 // read a byte
 // read file handle
-#define FREAD_HDL_S 200
+#define FREAD_HDL_S 50
 // read byte from file status
-#define FREAD_S 202
+#define FREAD_S 52
 // operation result status
-#define FREADRES_S 204
+#define FREADRES_S 54
 // error status
-#define FREAD_HDL_E1_S 201
-#define FREAD_E1_S 203
-//#define FREADRES_E1_S 205
+#define FREAD_HDL_E1_S 51
+#define FREAD_E1_S 53
 
 // peak a byte
 // read file handle
-#define FPEEK_HDL_S 240
+#define FPEEK_HDL_S 80
 // read byte from file status
-#define FPEEK_S 242
+#define FPEEK_S 82
 // operation result status
 //#define FREWINDRES_S 236
 // error status
-#define FPEEK_HDL_E1_S 241
-#define FPEEK_E1_S 243
+#define FPEEK_HDL_E1_S 81
+#define FPEEK_E1_S 83
 
 // get file pos
 // read file handle
-#define FGETPOS_HDL_S 208
+#define FGETPOS_HDL_S 56
 // read byte from file status
-#define FGETPOS_S 210
+#define FGETPOS_S 58
 // operation result status
 //#define FFGETPOSRES_S 204
 // error status
-#define FGETPOS_HDL_E1_S 209
-#define FGETPOS_E1_S 211
-
+#define FGETPOS_HDL_E1_S 57
+#define FGETPOS_E1_S 59
 
 // set file pos (absolute start)
 // read file handle
-#define FSEEKSET_HDL_S 216
+#define FSEEKSET_HDL_S 60
 // read byte from file status
-#define FSEEKSET_S 218
+#define FSEEKSET_S 62
 // operation result status
-#define FSEEKSETRES_S 220
+#define FSEEKSETRES_S 64
 // error status
-#define FSEEKSET_HDL_E1_S 217
-#define FSEEKSET_E1_S 219
+#define FSEEKSET_HDL_E1_S 61
+#define FSEEKSET_E1_S 63
 
 // set file pos (relative)
 // read file handle
-#define FSEEKCUR_HDL_S 224
+#define FSEEKCUR_HDL_S 66
 // read byte from file status
-#define FSEEKCUR_S 226
+#define FSEEKCUR_S 68
 // operation result status
-#define FSEEKCURRES_S 228
+#define FSEEKCURRES_S 70
 // error status
-#define FSEEKCUR_HDL_E1_S 225
-#define FSEEKCUR_E1_S 227
+#define FSEEKCUR_HDL_E1_S 67
+#define FSEEKCUR_E1_S 69
 
 // set file pos (absolute end)
 // read file handle
-#define FSEEKEND_HDL_S 232
+#define FSEEKEND_HDL_S 72
 // read byte from file status
-#define FSEEKEND_S 234
+#define FSEEKEND_S 74
 // operation result status
-#define FSEEKENDRES_S 236
+#define FSEEKENDRES_S 76
 // error status
-#define FSEEKEND_HDL_E1_S 233
-#define FSEEKEND_E1_S 235
+#define FSEEKEND_HDL_E1_S 73
+#define FSEEKEND_E1_S 75
 
 // set file pos (rewind)
 // read file handle
-#define FREWIND_HDL_S 238
-// read byte from file status
-//#define FREWIND_S 234
-// operation result status
-//#define FREWINDRES_S 236
+#define FREWIND_HDL_S 78
 // error status
-#define FREWIND_HDL_E1_S 233
+#define FREWIND_HDL_E1_S 79
 //#define FREWIND_E1_S 235

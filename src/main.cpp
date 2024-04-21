@@ -18,6 +18,8 @@
 // v1.05f - add seekcur & seekend
 // v1.05g - add rewind
 // v1.05h - add peek
+// v1.05i - global change to status codes (only)
+
 
 #include <Arduino.h>
 //#include <SPI.h>
