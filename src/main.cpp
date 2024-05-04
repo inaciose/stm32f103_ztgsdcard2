@@ -19,6 +19,7 @@
 // v1.05g - add rewind
 // v1.05h - add peek
 // v1.05i - global change to status codes (only)
+// v1.06a - sync on fwrite byte (send result)
 
 
 #include <Arduino.h>
@@ -481,6 +482,7 @@ void cpuReadDataReq() {
 
     case FWRITERES_S:
       writeDataBus(lastop_result);
+      ofile[cfileidx].sync();
       state = IDLE_S;
     break;
 
