@@ -193,8 +193,6 @@
 #define FREWIND_HDL_E1_S 79
 //#define FREWIND_E1_S 235
 
-
-
 // write n bytes
 // read file handle
 #define FWRITEB_HDL_S 84
@@ -207,7 +205,6 @@
 #define FWRITEB_E1_S 87
 #define FWRITEBRES_E1_S 89
 
-
 // read n bytes
 // read file handle
 #define FREADB_HDL_S 90
@@ -216,6 +213,17 @@
 // operation result status
 #define FREADBRES_S 94
 // error status
-#define FREADB_HDL_E1_S 94
+#define FREADB_HDL_E1_S 91
 #define FREADB_E1_S 93
 #define FREADBRES_E1_S 95
+
+// truncate file to n bytes lenght
+// read file handle
+#define FTRUNCATE_HDL_S 96
+// read bytes to set lenght
+#define FTRUNCATE_S 98
+// operation result status
+#define FTRUNCATERES_S 100
+// error status
+#define FTRUNCATE_HDL_E1_S 97
+#define FTRUNCATE_E1_S 99

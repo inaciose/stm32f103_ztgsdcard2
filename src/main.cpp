@@ -21,6 +21,7 @@
 // v1.05i - global change to status codes (only)
 // v1.06a - sync on fwrite byte (send result)
 // v1.06b - add fwriteb & freadb (address & nbytes)
+// v1.06c - add ftruncate (fix value of FREADB_HDL_E1_S )
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -578,6 +579,11 @@ void cpuReadDataReq() {
       }
     break;
 
+    case FTRUNCATERES_S:
+      writeDataBus(lastop_result);
+      state = IDLE_S;
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -847,6 +853,17 @@ void cpuWriteCmdReq() {
             state = FREADB_HDL_E1_S;
           }
         break;
+
+        case 0x2C:
+          // file read n bytes request
+          //Serial.println("WC cmd start read n bytes request");
+          if (ofnumber |= 0) {
+            state = FTRUNCATE_HDL_S;
+          } else {
+            state = FTRUNCATE_HDL_E1_S;
+          }
+        break;
+
       }
     break;
 
@@ -1664,7 +1681,7 @@ void cpuWriteDataReq() {
     case FSEEKEND_S:
       //Serial.println("WD FSEEKSET_S");
       // receive the offset then 
-      // set relative position on file
+      // set position on file
       if(bytecounter < 4) {
         wrkfileposition = wrkfileposition | dataread;
         if(bytecounter < 3) {
@@ -1791,6 +1808,53 @@ void cpuWriteDataReq() {
         state = FREADB_HDL_E1_S;
       }
     break;
+
+    case FTRUNCATE_HDL_S:
+      //Serial.println("WD FTRUNCATE_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            wrkfileposition = 0;
+            bytecounter = 0;
+            state = FTRUNCATE_S;
+          } else {
+            state = FTRUNCATE_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FTRUNCATE_HDL_E1_S;
+        }
+      } else {
+        state = FTRUNCATE_HDL_E1_S;
+      }
+    break;
+
+    case FTRUNCATE_S:
+      //Serial.println("WD FTRUNCATE_S");
+      // receive the lenght then 
+      // truncate the file to that lenght
+      if(bytecounter < 4) {
+        wrkfileposition = wrkfileposition | dataread;
+        if(bytecounter < 3) {
+          wrkfileposition = wrkfileposition << 8;
+        }
+        bytecounter++;
+        if(bytecounter == 4) {
+          lastop_result = ofile[cfileidx].truncate(wrkfileposition);
+          wrkfileposition = 0;
+          bytecounter = 0;
+          state = FTRUNCATERES_S;
+        }
+      }
+    break;
+
+
 
     default:
       // do nothing
