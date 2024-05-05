@@ -20,7 +20,7 @@
 // v1.05h - add peek
 // v1.05i - global change to status codes (only)
 // v1.06a - sync on fwrite byte (send result)
-
+// v1.06b - add fwriteb & freadb (address & nbytes)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -34,7 +34,6 @@
 //        SCK   = PA5;
 //        MISO  = PA6;
 //        MOSI  = PA7;
-
 
 // SD_FAT_TYPE = 0 for SdFat/File as defined in SdFatConfig.h,
 // 1 for FAT16/FAT32, 2 for exFAT, 3 for FAT16/FAT32 and exFAT.
@@ -192,10 +191,12 @@ int cf_hdl = 0;
 // counter for multi byte response
 volatile int bytecounter = 0;
 
+// counter for multi byte read or write operations
+volatile int nbytescounter = 0;
+
 // set file position
 volatile int wrkfileposition = 0;
 volatile int tmpfileposition = 0;
-
 
 // pin level operations
 void setupPin();
@@ -535,6 +536,48 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+    case FWRITEBRES_S:
+      if(bytecounter < 2) {
+        writeDataBus(nbytescounter);
+        bytecounter++;
+        if(bytecounter == 2) {
+          ofile[cfileidx].sync();
+          bytecounter = 0;
+          nbytescounter = 0;
+          state = IDLE_S;
+        } else {
+          nbytescounter = nbytescounter >> 8;
+        }
+      }
+    break;
+
+    case FREADB_S:
+      //myfile.read(buf, 1);
+      lastop_result = ofile[cfileidx].read(buf, 1);
+
+      if(lastop_result == 1) {
+        writeDataBus(buf[0]);
+        nbytescounter++;
+      } else {
+        writeDataBus(0);
+        state = FREADBRES_S;
+      }      
+    break;
+
+    case FREADBRES_S:
+      if(bytecounter < 2) {
+        writeDataBus(nbytescounter);
+        bytecounter++;
+        if(bytecounter == 2) {
+          bytecounter = 0;
+          nbytescounter = 0;
+          state = IDLE_S;
+        } else {
+          nbytescounter = nbytescounter >> 8;
+        }
+      }
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -716,8 +759,8 @@ void cpuWriteCmdReq() {
         break;
 
         case 0x23: // 32
-          // file write byte request
-          //Serial.println("WC cmd start write byte request");
+          // file read byte request
+          //Serial.println("WC cmd start read byte request");
           if (ofnumber |= 0) {
             state = FREAD_HDL_S;
           } else {
@@ -727,7 +770,7 @@ void cpuWriteCmdReq() {
 
         case 0x24: // 32
           // get file pos request
-          //Serial.println("WC cmd start write byte request");
+          //Serial.println("WC cmd start get file pos request");
           if (ofnumber |= 0) {
             state = FGETPOS_HDL_S;
           } else {
@@ -785,6 +828,25 @@ void cpuWriteCmdReq() {
           }
         break;
 
+        case 0x2A:
+          // file write n bytes request
+          //Serial.println("WC cmd start write n bytes request");
+          if (ofnumber |= 0) {
+            state = FWRITEB_HDL_S;
+          } else {
+            state = FWRITEB_HDL_E1_S;
+          }
+        break;
+
+        case 0x2B:
+          // file read n bytes request
+          //Serial.println("WC cmd start read n bytes request");
+          if (ofnumber |= 0) {
+            state = FREADB_HDL_S;
+          } else {
+            state = FREADB_HDL_E1_S;
+          }
+        break;
       }
     break;
 
@@ -813,63 +875,44 @@ void cpuWriteCmdReq() {
       }
     break;
 
-    /*
-    case OFOPEN_S:
+    case FWRITEB_S:
       switch(dataread) {
-
-        case 0xE: // 14
-          // list files
-          //Serial.println("WC cmd list files");
-          filename[0] = '\0';
-          filename_count = 0;
-          state = DIRNAME_S;          
-
-        break;
-
-        case 0x20: // 32
-          // openfile request
-          //Serial.println("WC cmd start openfile request");
-          if (ofnumber <= OFMAXNUM) {
-            filename[0] = '\0';
-            filename_count = 0;
-            ofilemode = 0;
-            state = OFNAME_S;
-          } else {
-            state = OFOPEN_E1_S;
-          }
+        case 0xB: // 11
+          // end write nbytes request (dont close file)
+          //Serial.println("WC cmd end write n bytes request");          
+          state = FWRITEBRES_S;
         break;
 
         case 0xF: // 15
           // reset
-          //Serial.println("WC cmd reset (gbl)");
-          fexist_reply = 0;
-          filename[0] = '\0';
-          filename_count = 0;
-          filename1[0] = '\0';
-          filename1_count = 0;
-          // close files
-          if(myfile) {
-            myfile.close();
-          }
-          if(myfile1) {
-            myfile1.close();
-          }
-
-          // current directory send control
-          directory_idx = 0;
-          directory_max = 0;
-
-          // reset file list
-          dir_lst[0] = '\0';
-          dir_idx = 0;
-          dir_max = 0;
-
-          state = IDLE_S;
+          // didnt kown if we 
+          // need to do more than
+          // set the state idle, and
+          // interrupt the operation
+          state = IDLE_S;          
         break;
-
       }
     break;
-    */
+
+    case FREADB_S:
+      switch(dataread) {
+        case 0xB: // 11
+          // end read nbytes request (dont close file)
+          // Serial.println("WC cmd end read n bytes request");          
+          state = FREADBRES_S;
+        break;
+
+        case 0xF: // 15
+          // reset
+          // didnt kown if we 
+          // need to do more than
+          // set the state idle, and
+          // interrupt the operation
+          state = IDLE_S;          
+        break;
+      }
+    break;
+
 
     default:
       switch(dataread) {
@@ -1687,6 +1730,67 @@ void cpuWriteDataReq() {
       }
     break;
 
+    case FWRITEB_HDL_S:
+      //Serial.println("WD FWRITEB_HDL_S");
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            bytecounter = 0;
+            nbytescounter = 0;
+            state = FWRITEB_S;
+          } else {
+            state = FWRITEB_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FWRITEB_HDL_E1_S;
+        }
+      } else {
+        state = FWRITEB_HDL_E1_S;
+      }
+    break;
+
+    case FWRITEB_S:
+      //Serial.println("WD FWRITEB_S");
+      buf[0] = dataread;
+      lastop_result = ofile[cfileidx].write(buf, 1);
+      if(lastop_result) {
+        nbytescounter += lastop_result;
+      } else {
+        ofile[cfileidx].clearWriteError();
+        state = FWRITEBRES_S;
+      }
+    break;
+
+    case FREADB_HDL_S:
+      //Serial.println("WD FREAD_HDL_S");
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            bytecounter = 0;
+            nbytescounter = 0;
+            state = FREADB_S;
+          } else {
+            state = FREADB_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = FREADB_HDL_E1_S;
+        }
+      } else {
+        state = FREADB_HDL_E1_S;
+      }
+    break;
 
     default:
       // do nothing
@@ -1717,7 +1821,6 @@ void cpuEndRequest() {
   digitalWrite(WAIT_N, LOW);
   processing = 0;
 }
-
 
 //
 //

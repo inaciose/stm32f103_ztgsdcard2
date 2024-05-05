@@ -75,29 +75,39 @@ SDCSFSESTAT:        EQU   0x4c ; file seekend status
 SDCSFRWDHDL:        EQU   0x4e ; file rewind handle  
 SDCSFPKHDL:         EQU   0x50 ; file peek handle  
 SDCSFPEEK:          EQU   0x52 ; file peek  
+SDCSFWBHDL:         EQU   0x54 ; file writebytes handle  
+SDCSFWRITEB:        EQU   0x56 ; file writebytes  
+SDCSFWBSTAT:        EQU   0x58 ; file writebytes status  
+SDCSFRBHDL:         EQU   0x5A ; file readbytes handle  
+SDCSFREADB:         EQU   0x5C ; file readbytes  
+SDCSFRBSTAT:        EQU   0x5E ; file readbytes status  
 
-; sdcard io commands start
-SDCMDRESET:          EQU   0x0f
-SDCMDLOAD:           EQU   0x0d
-SDCMDSAVE:           EQU   0x0c
-;SDCMDWRITE:          EQU   0x
-SDCMDWREND:          EQU   0x0b
-SDCMDLIST:           EQU   0x0e
-SDCMDDEL:            EQU   0x0a
-SDCMDREN:            EQU   0x10
-SDCMDCOPY:           EQU   0x11
-SDCMDEXIST:          EQU   0x12
-SDCMDMKDIR:          EQU   0x13
-SDCMDRMDIR:          EQU   0x14
-SDCMDCD:             EQU   0x15
-SDCMDCWD:            EQU   0x16
-SDCMDFOPEN:          EQU   0x20
-SDCMDFCLOSE:         EQU   0x21
-SDCMDFWRITE:         EQU   0x22
-SDCMDFREAD:          EQU   0x23
-SDCMDFGPOS:          EQU   0x24
-SDCMDFSEKSET:        EQU   0x25
-SDCMDFSEKCUR:        EQU   0x26
-SDCMDFSEKEND:        EQU   0x27
-SDCMDFREWIND:        EQU   0x28
-SDCMDFPEEK:          EQU   0x29
+; sdcard io commands start  
+SDCMDRESET:          EQU   0x0f  
+SDCMDLOAD:           EQU   0x0d  
+SDCMDSAVE:           EQU   0x0c   
+SDCMDRWEND:          EQU   0x0b  
+SDCMDLIST:           EQU   0x0e  
+SDCMDDEL:            EQU   0x0a  
+SDCMDREN:            EQU   0x10  
+SDCMDCOPY:           EQU   0x11  
+SDCMDEXIST:          EQU   0x12  
+SDCMDMKDIR:          EQU   0x13  
+SDCMDRMDIR:          EQU   0x14  
+SDCMDCD:             EQU   0x15  
+SDCMDCWD:            EQU   0x16  
+SDCMDFOPEN:          EQU   0x20  
+SDCMDFCLOSE:         EQU   0x21  
+SDCMDFWRITE:         EQU   0x22  
+SDCMDFREAD:          EQU   0x23  
+SDCMDFGPOS:          EQU   0x24  
+SDCMDFSEKSET:        EQU   0x25  
+SDCMDFSEKCUR:        EQU   0x26  
+SDCMDFSEKEND:        EQU   0x27  
+SDCMDFREWIND:        EQU   0x28  
+SDCMDFPEEK:          EQU   0x29  
+SDCMDFWRITEB:        EQU   0x2A  
+SDCMDFREADB:         EQU   0x2B  
+
+# operations status and command codes
+https://docs.google.com/spreadsheets/d/1EDnzh6c8GuFteZskviRQ0HXl_1hdd2McFDgUcx4P_4A/edit?usp=sharing  

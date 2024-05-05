@@ -192,3 +192,30 @@
 // error status
 #define FREWIND_HDL_E1_S 79
 //#define FREWIND_E1_S 235
+
+
+
+// write n bytes
+// read file handle
+#define FWRITEB_HDL_S 84
+// write byte to file status
+#define FWRITEB_S 86
+// operation result status
+#define FWRITEBRES_S 88
+// error status
+#define FWRITEB_HDL_E1_S 85
+#define FWRITEB_E1_S 87
+#define FWRITEBRES_E1_S 89
+
+
+// read n bytes
+// read file handle
+#define FREADB_HDL_S 90
+// read byte from file status
+#define FREADB_S 92
+// operation result status
+#define FREADBRES_S 94
+// error status
+#define FREADB_HDL_E1_S 94
+#define FREADB_E1_S 93
+#define FREADBRES_E1_S 95
