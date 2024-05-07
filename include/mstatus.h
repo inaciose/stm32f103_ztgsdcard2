@@ -98,7 +98,6 @@
 #define OFGHDH_S 40
 // open file status
 //#define OFOPEN_S 178
-
 // error status
 #define OFOPEN_E1_S 41
 
@@ -227,3 +226,11 @@
 // error status
 #define FTRUNCATE_HDL_E1_S 97
 #define FTRUNCATE_E1_S 99
+
+// list open files
+// write file handle status
+#define LSOPEN_READ_S 102
+// write file handle status
+//#define LSOPEN_END_S 104
+// error status
+#define LSOPEN_READ_E1_S 103

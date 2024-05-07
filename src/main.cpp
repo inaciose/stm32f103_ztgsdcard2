@@ -22,6 +22,7 @@
 // v1.06a - sync on fwrite byte (send result)
 // v1.06b - add fwriteb & freadb (address & nbytes)
 // v1.06c - add ftruncate (fix value of FREADB_HDL_E1_S )
+// v1.06d - add lsof (list open file handle ids)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -176,6 +177,9 @@ int ofileidx = 0;
 int oftable[10] {0};    // table of open file hdl (ids)
 int ofnumber = 0;       // total number of open files
 int cfileidx = 0;       // current open file in use
+
+volatile unsigned char lsofbuff[11] {0};
+int lsofbuffidx = 0;
 
 // fileopen
 volatile int ofilemode = 0;
@@ -584,6 +588,19 @@ void cpuReadDataReq() {
       state = IDLE_S;
     break;
 
+
+    case LSOPEN_READ_S:
+      writeDataBus(lsofbuff[lsofbuffidx]);
+      if(lsofbuff[lsofbuffidx] == 0) {
+        //lsofbuffidx = 0;
+        state = IDLE_S;
+      } else {
+        lsofbuffidx++;
+      }
+      
+    break;
+
+
     default:
       // nothing to do
       // just let cpu go
@@ -864,6 +881,29 @@ void cpuWriteCmdReq() {
           }
         break;
 
+        case 0x2D:
+          // list open files request
+          //Serial.println("WC cmd list open files request");
+
+           int f;
+          // reset lsofbuff
+          for(f = 0; f < OFMAXNUM; f++) {
+            lsofbuff[f] = 0;
+          }
+
+          // reset index
+          lsofbuffidx = 0;
+          // set open handles
+          for(f = 0; f < OFMAXNUM; f++) {          
+            if(oftable[f]) {
+              lsofbuff[lsofbuffidx++] = f+1;
+            }
+          }
+          // reset index
+          lsofbuffidx = 0;
+          state = LSOPEN_READ_S;
+
+        break;
       }
     break;
 
@@ -1462,7 +1502,8 @@ void cpuWriteDataReq() {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
           // slot is marked as used with a file open
-          ofile[ofileidx].close();
+          //ofile[ofileidx].close();
+          ofile[cf_hdl].close();
 
           // update open files control
           oftable[cf_hdl] = 0;
@@ -1853,8 +1894,6 @@ void cpuWriteDataReq() {
         }
       }
     break;
-
-
 
     default:
       // do nothing

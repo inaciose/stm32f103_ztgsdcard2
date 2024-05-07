@@ -81,6 +81,10 @@ SDCSFWBSTAT:        EQU   0x58 ; file writebytes status
 SDCSFRBHDL:         EQU   0x5A ; file readbytes handle  
 SDCSFREADB:         EQU   0x5C ; file readbytes  
 SDCSFRBSTAT:        EQU   0x5E ; file readbytes status  
+SDCSFTRCTHDL:       EQU   0x60 ; file truncate handle
+SDCSFTRUNCATE:      EQU   0x62 ; file truncate
+SDCSFTRCTSTAT:      EQU   0x64 ; file truncate status
+SDCSLSOFRD:         EQU   0x66 ; list of open files
 
 ; sdcard io commands start  
 SDCMDRESET:          EQU   0x0f  
@@ -108,6 +112,8 @@ SDCMDFREWIND:        EQU   0x28
 SDCMDFPEEK:          EQU   0x29  
 SDCMDFWRITEB:        EQU   0x2A  
 SDCMDFREADB:         EQU   0x2B  
+SDCMDFTRUNCATE:      EQU   0x2C  
+SDCMDLSOF:           EQU   0x2D  
 
 # operations status and command codes
 https://docs.google.com/spreadsheets/d/1EDnzh6c8GuFteZskviRQ0HXl_1hdd2McFDgUcx4P_4A/edit?usp=sharing  
