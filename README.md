@@ -96,6 +96,7 @@ SDCMDLOAD:           EQU   0x0d
 SDCMDSAVE:           EQU   0x0c   
 SDCMDRWEND:          EQU   0x0b  
 SDCMDLIST:           EQU   0x0e  
+SDCMDCLIST:          EQU   0x1e  
 SDCMDDEL:            EQU   0x0a  
 SDCMDREN:            EQU   0x10  
 SDCMDCOPY:           EQU   0x11  

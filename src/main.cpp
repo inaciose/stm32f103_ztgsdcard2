@@ -25,7 +25,7 @@
 // v1.06d - add lsof (list open file handle ids) (z80: v1.06k)
 // v1.06e - add getfsize (get file size) (z80: v1.06l)
 // v1.06f - add getfname (get file name) (z80: v1.06m)
-
+// v1.06g - rewrite list (divided in slist & clist) (z80: v1.06n)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -417,7 +417,24 @@ void cpuReadDataReq() {
 
     case DIR_S:
      if(dir_idx < dir_max) { 
-        writeDataBus(dir_lst[dir_idx++]); 
+        //writeDataBus(dir_lst[dir_idx++]); 
+        writeDataBus(dir_lst[dir_idx]);
+        if(dir_lst[dir_idx] == '\n') {
+          // end of current file/dir name
+          dir_idx++;
+          state = IDLE_S;
+        } else if(dir_lst[dir_idx] == '\0') {
+          // end of dir list
+          // reset file list
+          dir_lst[0] = '\0';
+          dir_idx = 0;
+          dir_max = 0;
+          state = IDLE_S;
+        } else {
+          // still in the same file/dir name
+          dir_idx++;
+        }
+        /*
         if(dir_idx >= dir_max) {
           // end of dir list
           // reset file list
@@ -425,18 +442,10 @@ void cpuReadDataReq() {
           dir_idx = 0;
           dir_max = 0;
 
-          state = IDLE_S;
-
-          /*
-          if(ofnumber) {
-            // have file open iddle state
-            state = OFOPEN_S;
-          } else {
-            state = IDLE_S;
-          }
-          */
-                   
+          state = DIREND_S;      
         }
+        */
+
       } else {
         // we never come here
         //Serial.println("EDIR");
@@ -445,14 +454,6 @@ void cpuReadDataReq() {
         dir_idx = 0;
         dir_max = 0;
         state = IDLE_S;
-        /*
-        if(ofnumber) {
-          // have file open iddle state
-          state = OFOPEN_S;
-        } else {
-          state = IDLE_S;
-        }
-        */
       }
     break;
 
@@ -481,7 +482,6 @@ void cpuReadDataReq() {
       writeDataBus(fexist_reply);
       state = IDLE_S;
     break;
-
 
     case OFGHDH_S:
       if(!of_error) {
@@ -693,6 +693,12 @@ void cpuWriteCmdReq() {
           filename[0] = '\0';
           filename_count = 0;
           state = DIRNAME_S;          
+        break;
+
+        case 0x1E: // ??
+          // continue list files
+          //Serial.println("WC cmd continue list files");
+          state = DIR_S;          
         break;
 
         case 0xD: // 13
@@ -1165,7 +1171,8 @@ void cpuWriteDataReq() {
             printDirectory(root, 0);
             //Serial.println("list files");
             root.close();
-            state = DIR_S;
+            state = IDLE_S;
+            //state = DIR_S;
           } else {
             state = DIR_E1_S;
           }
@@ -2182,7 +2189,7 @@ void printDirectory(File dir, int numTabs) {
     }
 
     dir_lst[dir_max++] ='\n';
-    dir_lst[dir_max++] ='\r';
+    //dir_lst[dir_max++] ='\r';
 
     myfile.close();
   }

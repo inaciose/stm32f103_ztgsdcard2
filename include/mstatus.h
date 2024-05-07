@@ -24,6 +24,8 @@
 #define DIRNAME_S 10
 // send list/dir bytes (ascii), one per cpu request
 #define DIR_S 12
+// reach end of dir list
+#define DIREND_S 112
 // error status
 #define DIR_E1_S 11
 #define DIR_E2_S 13
