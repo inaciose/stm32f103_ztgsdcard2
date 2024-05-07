@@ -243,3 +243,12 @@
 // error status
 #define GETFSIZE_HDL_E1_S 105
 #define GETFSIZE_E1_S 107
+
+// get file name
+// read file handle
+#define GETFNAME_HDL_S 108
+// read byte from file status
+#define GETFNAME_S 110
+// error status
+#define GETFNAME_HDL_E1_S 109
+#define GETFNAME_E1_S 111

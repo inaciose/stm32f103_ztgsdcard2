@@ -85,6 +85,10 @@ SDCSFTRCTHDL:       EQU   0x60 ; file truncate handle
 SDCSFTRUNCATE:      EQU   0x62 ; file truncate
 SDCSFTRCTSTAT:      EQU   0x64 ; file truncate status
 SDCSLSOFRD:         EQU   0x66 ; list of open files
+SDCSFGSIZEHDL:      EQU   0x68 ; get file size file handle  
+SDCSFGSIZE:         EQU   0x6A ; get file size  
+SDCSFGNAMEHDL:      EQU   0x6C ; get file name file handle  
+SDCSFGNAME:         EQU   0x6E ; get file name  
 
 ; sdcard io commands start  
 SDCMDRESET:          EQU   0x0f  
@@ -114,6 +118,8 @@ SDCMDFWRITEB:        EQU   0x2A
 SDCMDFREADB:         EQU   0x2B  
 SDCMDFTRUNCATE:      EQU   0x2C  
 SDCMDLSOF:           EQU   0x2D  
+SDCMDFGETSIZE:       EQU   0x2E  
+SDCMDFGETNAME:       EQU   0x2F  
 
 # operations status and command codes
 https://docs.google.com/spreadsheets/d/1EDnzh6c8GuFteZskviRQ0HXl_1hdd2McFDgUcx4P_4A/edit?usp=sharing  

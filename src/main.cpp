@@ -19,11 +19,13 @@
 // v1.05g - add rewind
 // v1.05h - add peek
 // v1.05i - global change to status codes (only)
-// v1.06a - sync on fwrite byte (send result)
-// v1.06b - add fwriteb & freadb (address & nbytes)
-// v1.06c - add ftruncate (fix value of FREADB_HDL_E1_S )
-// v1.06d - add lsof (list open file handle ids)
-// v1.06e - add getfsize (get file size)
+// v1.06a - sync on fwrite byte (send result) (z80: v1.06f)
+// v1.06b - add fwriteb & freadb (address & nbytes) (z80: v1.06h)
+// v1.06c - add ftruncate (fix value of FREADB_HDL_E1_S) (z80: v1.06j)
+// v1.06d - add lsof (list open file handle ids) (z80: v1.06k)
+// v1.06e - add getfsize (get file size) (z80: v1.06l)
+// v1.06f - add getfname (get file name) (z80: v1.06m)
+
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -203,6 +205,11 @@ volatile int nbytescounter = 0;
 // set file position
 volatile int wrkfileposition = 0;
 volatile int tmpfileposition = 0;
+
+// get file name
+#define FNMAXNUM 64
+volatile unsigned char fnamebuff[FNMAXNUM+1] {0};
+int fnamebuffidx = 0;
 
 // pin level operations
 void setupPin();
@@ -613,6 +620,16 @@ void cpuReadDataReq() {
       }
     break;
 
+    case GETFNAME_S:
+      writeDataBus(fnamebuff[fnamebuffidx]);
+      if(fnamebuff[fnamebuffidx] == 0) {
+        //fnamebuffidx = 0;
+        state = IDLE_S;
+      } else {
+        fnamebuffidx++;
+      }
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -926,6 +943,17 @@ void cpuWriteCmdReq() {
             state = GETFSIZE_HDL_E1_S;
           }
         break;
+
+        case 0x2F:
+          // get file name request
+          //Serial.println("WC cmd start get file name request");
+          if (ofnumber != 0) {
+            state = GETFNAME_HDL_S;
+          } else {
+            state = GETFNAME_HDL_E1_S;
+          }
+        break;
+
       }
 
     break;
@@ -1941,6 +1969,40 @@ void cpuWriteDataReq() {
         }
       } else {
         state = GETFSIZE_HDL_E1_S;
+      }
+    break;
+
+    case GETFNAME_HDL_S:
+      //Serial.println("WD GETFNAME_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            int f;
+            // reset fnamebuff
+            for(f = 0; f < FNMAXNUM; f++) {
+              fnamebuff[f] = 0;
+            }
+            // reset buffer index
+            fnamebuffidx = 0;
+            // get file name
+            lastop_result = ofile[cfileidx].getName((char*)fnamebuff, FNMAXNUM);
+            //bytecounter = 0;
+            state = GETFNAME_S;
+          } else {
+            state = GETFNAME_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = GETFNAME_HDL_E1_S;
+        }
+      } else {
+        state = GETFNAME_HDL_E1_S;
       }
     break;
 
