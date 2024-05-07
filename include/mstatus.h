@@ -234,3 +234,12 @@
 //#define LSOPEN_END_S 104
 // error status
 #define LSOPEN_READ_E1_S 103
+
+// get file size bytes
+// read file handle
+#define GETFSIZE_HDL_S 104
+// read byte from file status
+#define GETFSIZE_S 106
+// error status
+#define GETFSIZE_HDL_E1_S 105
+#define GETFSIZE_E1_S 107

@@ -23,6 +23,7 @@
 // v1.06b - add fwriteb & freadb (address & nbytes)
 // v1.06c - add ftruncate (fix value of FREADB_HDL_E1_S )
 // v1.06d - add lsof (list open file handle ids)
+// v1.06e - add getfsize (get file size)
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -597,9 +598,20 @@ void cpuReadDataReq() {
       } else {
         lsofbuffidx++;
       }
-      
     break;
 
+    case GETFSIZE_S:
+      if(bytecounter < 4) {
+        writeDataBus(lastop_result);
+        bytecounter++;
+        if(bytecounter == 4) {
+          bytecounter = 0;
+          state = IDLE_S;
+        } else {
+          lastop_result = lastop_result >> 8;
+        }
+      }
+    break;
 
     default:
       // nothing to do
@@ -764,7 +776,7 @@ void cpuWriteCmdReq() {
         case 0x21: // 32
           // closefile request
           //Serial.println("WC cmd start closefile request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = CFHDL_S;
           } else {
             state = CFHDL_E1_S;
@@ -774,7 +786,7 @@ void cpuWriteCmdReq() {
         case 0x22: // 32
           // file write byte request
           //Serial.println("WC cmd start write byte request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FWRITE_HDL_S;
           } else {
             state = FWRITE_HDL_E1_S;
@@ -784,7 +796,7 @@ void cpuWriteCmdReq() {
         case 0x23: // 32
           // file read byte request
           //Serial.println("WC cmd start read byte request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FREAD_HDL_S;
           } else {
             state = FREAD_HDL_E1_S;
@@ -794,7 +806,7 @@ void cpuWriteCmdReq() {
         case 0x24: // 32
           // get file pos request
           //Serial.println("WC cmd start get file pos request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FGETPOS_HDL_S;
           } else {
             state = FGETPOS_HDL_E1_S;
@@ -804,7 +816,7 @@ void cpuWriteCmdReq() {
         case 0x25: // 32
           // file pos seekset request
           //Serial.println("WC cmd start seekset request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FSEEKSET_HDL_S;
           } else {
             state = FSEEKSET_HDL_E1_S;
@@ -814,7 +826,7 @@ void cpuWriteCmdReq() {
         case 0x26: // 32
           // file pos seekcur request
           //Serial.println("WC cmd start seekcur request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FSEEKCUR_HDL_S;
           } else {
             state = FSEEKCUR_HDL_E1_S;
@@ -824,7 +836,7 @@ void cpuWriteCmdReq() {
         case 0x27: // 32
           // file pos seekend request
           //Serial.println("WC cmd start seekend request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FSEEKEND_HDL_S;
           } else {
             state = FSEEKEND_HDL_E1_S;
@@ -834,7 +846,7 @@ void cpuWriteCmdReq() {
         case 0x28: // 32
           // file pos rewind request
           //Serial.println("WC cmd start rewind request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FREWIND_HDL_S;
           } else {
             state = FREWIND_HDL_E1_S;
@@ -844,7 +856,7 @@ void cpuWriteCmdReq() {
         case 0x29: // 32
           // file peek request
           //Serial.println("WC cmd start peek request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FPEEK_HDL_S;
           } else {
             state = FPEEK_HDL_E1_S;
@@ -854,7 +866,7 @@ void cpuWriteCmdReq() {
         case 0x2A:
           // file write n bytes request
           //Serial.println("WC cmd start write n bytes request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FWRITEB_HDL_S;
           } else {
             state = FWRITEB_HDL_E1_S;
@@ -864,7 +876,7 @@ void cpuWriteCmdReq() {
         case 0x2B:
           // file read n bytes request
           //Serial.println("WC cmd start read n bytes request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FREADB_HDL_S;
           } else {
             state = FREADB_HDL_E1_S;
@@ -874,7 +886,7 @@ void cpuWriteCmdReq() {
         case 0x2C:
           // file read n bytes request
           //Serial.println("WC cmd start read n bytes request");
-          if (ofnumber |= 0) {
+          if (ofnumber != 0) {
             state = FTRUNCATE_HDL_S;
           } else {
             state = FTRUNCATE_HDL_E1_S;
@@ -904,7 +916,18 @@ void cpuWriteCmdReq() {
           state = LSOPEN_READ_S;
 
         break;
+
+        case 0x2E:
+          // get file size request
+          //Serial.println("WC cmd start get file size request");
+          if (ofnumber != 0) {
+            state = GETFSIZE_HDL_S;
+          } else {
+            state = GETFSIZE_HDL_E1_S;
+          }
+        break;
       }
+
     break;
 
     case WFILE_S:
@@ -1892,6 +1915,32 @@ void cpuWriteDataReq() {
           bytecounter = 0;
           state = FTRUNCATERES_S;
         }
+      }
+    break;
+
+    case GETFSIZE_HDL_S:
+      //Serial.println("WD GETFSIZE_HDL_S");
+      //Serial.println(dataread);
+      // receive the file handler (file id)
+      if(dataread) {
+        cf_hdl = dataread - 1;
+        if(oftable[cf_hdl]) {
+          // slot is marked as used with a file open
+          cfileidx = cf_hdl;
+          // check if file is open
+          if(ofile[cfileidx].isOpen()) {
+            lastop_result = ofile[cfileidx].fileSize();
+            bytecounter = 0;
+            state = GETFSIZE_S;
+          } else {
+            state = GETFSIZE_E1_S;
+          }
+        } else {
+          // slot is not marked as used
+          state = GETFSIZE_HDL_E1_S;
+        }
+      } else {
+        state = GETFSIZE_HDL_E1_S;
       }
     break;
 
