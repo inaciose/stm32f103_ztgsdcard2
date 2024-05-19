@@ -663,6 +663,8 @@ void cpuWriteCmdReq() {
   processing = 1;
 
   int dataread = readFromDataBus();
+  
+  //Serial.print("DR: ");
   //Serial.println(dataread, HEX);
 
   switch(state) {
@@ -918,7 +920,7 @@ void cpuWriteCmdReq() {
 
         case 0x2D:
           // list open files request
-          //Serial.println("WC cmd list open files request");
+          //Serial.println("WC lsof");
 
            int f;
           // reset lsofbuff
@@ -1479,9 +1481,9 @@ void cpuWriteDataReq() {
         ofilemode_count++;
         ofilemode = ofilemode << 8;
 
-        Serial.print(dataread, HEX);
-        Serial.print(" ");
-        Serial.println(ofilemode, HEX);
+        //Serial.print(dataread, HEX);
+        //Serial.print(" ");
+        //Serial.println(ofilemode, HEX);
 
       } else {
         if(ofilemode_count == 1) {
@@ -1494,7 +1496,8 @@ void cpuWriteDataReq() {
           Serial.print(dataread, HEX);
           Serial.print(" ");
           Serial.println(ofilemode, HEX);
-          Serial.println(ofileidx);
+          Serial.print(ofileidx);
+          Serial.print(" ");
           Serial.println(ofnumber);
 
           // set current working open file
@@ -1527,10 +1530,9 @@ void cpuWriteDataReq() {
             // control max open files
             ofnumber++;
 
-            Serial.println(ofileidx);
+            Serial.print(ofileidx);
+            Serial.print(" ");
             Serial.println(ofnumber);
-            Serial.println("");
-
 
             // go to reply handle or null state
             state = OFGHDH_S;
@@ -1539,7 +1541,7 @@ void cpuWriteDataReq() {
             // error opening source
             // prepare OFGHDH_S response
 
-            Serial.println("ERROR ON FILE OPEN");
+            Serial.println("FOPEN ERROR");
 
             of_hdl = 0;
             of_error = OFOPEN_E1_S;
@@ -1556,6 +1558,9 @@ void cpuWriteDataReq() {
       //Serial.println("WD CFHDL_S");
       // receive the file handler (file id)
       Serial.println("FILE close");
+      
+      //Serial.println(dataread);
+
       if(dataread) {
         cf_hdl = dataread - 1;
         if(oftable[cf_hdl]) {
@@ -1693,9 +1698,16 @@ void cpuWriteDataReq() {
       // set absolute position on file
       if(bytecounter < 4) {
         wrkfileposition = wrkfileposition | dataread;
+        
+        //Serial.print("FSEEKSET_S ");
+        //Serial.println(dataread, HEX);
+        //Serial.println(wrkfileposition);
+        //Serial.println(wrkfileposition, HEX);
+
         if(bytecounter < 3) {
           wrkfileposition = wrkfileposition << 8;
         }
+        
         bytecounter++;
         if(bytecounter == 4) {
           lastop_result = ofile[cfileidx].seekSet(wrkfileposition);
@@ -1733,14 +1745,22 @@ void cpuWriteDataReq() {
     break;
 
     case FSEEKCUR_S:
-      //Serial.println("WD FSEEKSET_S");
+      //Serial.println("WD FSEEKCUR_S");
       // receive the offset then 
       // set relative position on file
       if(bytecounter < 4) {
         wrkfileposition = wrkfileposition | dataread;
+        
+        //Serial.print("FSEEKCUR_S ");
+        //Serial.println(dataread, HEX);
+        //Serial.println(wrkfileposition);
+        //Serial.println(wrkfileposition, HEX);
+
         if(bytecounter < 3) {
           wrkfileposition = wrkfileposition << 8;
         }
+
+
         bytecounter++;
         if(bytecounter == 4) {
           lastop_result = ofile[cfileidx].seekCur(wrkfileposition);
@@ -1778,14 +1798,21 @@ void cpuWriteDataReq() {
     break;
 
     case FSEEKEND_S:
-      //Serial.println("WD FSEEKSET_S");
+      //Serial.println("WD FSEEKEND_S");
       // receive the offset then 
       // set position on file
       if(bytecounter < 4) {
         wrkfileposition = wrkfileposition | dataread;
+
+        //Serial.print("FSEEKEND_S ");
+        //Serial.println(dataread, HEX);
+        //Serial.println(wrkfileposition);
+        //Serial.println(wrkfileposition, HEX);
+
         if(bytecounter < 3) {
           wrkfileposition = wrkfileposition << 8;
         }
+        
         bytecounter++;
         if(bytecounter == 4) {
           lastop_result = ofile[cfileidx].seekEnd(wrkfileposition);
