@@ -26,6 +26,9 @@
 // v1.06e - add getfsize (get file size) (z80: v1.06l)
 // v1.06f - add getfname (get file name) (z80: v1.06m)
 // v1.06g - rewrite list (divided in slist & clist) (z80: v1.06n)
+// v1.07a - add gettotalspace & getfreespace (in MB) (z80: v1.07a)
+//        - change lastop_result from int to long int
+
 
 #include <Arduino.h>
 //#include <SPI.h>
@@ -167,7 +170,7 @@ char *dir_fname_ptr = dir_fname;
 int fexist_reply = 0;
 
 // generic response
-volatile int lastop_result = 0;
+volatile long int lastop_result = 0;
 //
 // file io
 //
@@ -210,6 +213,11 @@ volatile int tmpfileposition = 0;
 #define FNMAXNUM 64
 volatile unsigned char fnamebuff[FNMAXNUM+1] {0};
 int fnamebuffidx = 0;
+
+// sdcard info
+unsigned long long int sdspacedata = 0;
+unsigned long int clusterdata1 = 0;
+unsigned long int clusterdata2 = 0;
 
 // pin level operations
 void setupPin();
@@ -630,6 +638,21 @@ void cpuReadDataReq() {
       }
     break;
 
+    case GETSPACE_TOTAL_S:
+    case GETSPACE_FREE_S:
+      if(bytecounter < 4) {
+        writeDataBus(sdspacedata);
+        bytecounter++;
+        if(bytecounter == 4) {
+          bytecounter = 0;
+          sdspacedata = 0;
+          state = IDLE_S;
+        } else {
+          sdspacedata = sdspacedata >> 8;
+        }
+      }
+    break;
+
     default:
       // nothing to do
       // just let cpu go
@@ -960,6 +983,35 @@ void cpuWriteCmdReq() {
           } else {
             state = GETFNAME_HDL_E1_S;
           }
+        break;
+
+        case 0x30:
+          // get card total space
+          //Serial.println("WC cmd get total space request");
+          clusterdata1 = sd.clusterCount();
+          clusterdata2 = sd.bytesPerCluster();
+          //sdspacedata = sd.sectorsPerCluster();
+          // calculate space in MB
+          sdspacedata = (uint64_t) ((uint64_t) clusterdata1 * (uint64_t) clusterdata2);
+          // calculate space in MB
+          sdspacedata = sdspacedata / (1024 * 1024);
+          // set state
+          state = GETSPACE_TOTAL_S;
+        break;
+
+
+        case 0x31:
+          // get card free space
+          //Serial.println("WC cmd get free space request");
+          clusterdata1 = sd.freeClusterCount();
+          clusterdata2 = sd.bytesPerCluster();
+          //sdspacedata = sd.sectorsPerCluster();
+          // calculate space in MB
+          sdspacedata = (uint64_t) ((uint64_t) clusterdata1 * (uint64_t) clusterdata2);
+          // calculate space in MB
+          sdspacedata = sdspacedata / (1024 * 1024);
+          // set state
+          state = GETSPACE_FREE_S;
         break;
 
       }

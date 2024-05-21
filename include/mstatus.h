@@ -254,3 +254,16 @@
 // error status
 #define GETFNAME_HDL_E1_S 109
 #define GETFNAME_E1_S 111
+
+// get total space in card
+// write the space data
+#define GETSPACE_TOTAL_S 114
+// error status
+#define GETSPACE_TOTAL_E1_S 115
+
+// get free space in card
+// write the space data
+#define GETSPACE_FREE_S 116
+// error status
+#define GETSPACE_FREE_E1_S 117
+

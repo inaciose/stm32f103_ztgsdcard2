@@ -23,16 +23,16 @@ This version only have the changes required to migrate the firmware from the SD 
 
 The firmware is under development. There is many things changing. See the version on the header of the main.cpp.
 
-
 # basic info about the ztgsdcard interface 
 
-; sdcard io addresses  
-SDCRS:              EQU   0x40  
-SDCRD:              EQU   0x41  
-SDCWC:              EQU   0x40  
-SDCWD:              EQU   0x41  
-  
-; sdcard io status  
+; Interface addresses used in operations  
+SDCRS:              EQU   0x40   ; read status  
+SDCRD:              EQU   0x41   ; read data from device  
+SDCWC:              EQU   0x40   ; write command  
+SDCWD:              EQU   0x41   ; write data to device  
+
+
+; Firmware status codes for each situation  
 SDCSIDL:            EQU   0x00 ;  
 SDCSWFN:            EQU   0x06 ; write file, send name  
 SDCSWFD:            EQU   0x08 ; write file, send data  
@@ -89,8 +89,10 @@ SDCSFGSIZEHDL:      EQU   0x68 ; get file size file handle
 SDCSFGSIZE:         EQU   0x6A ; get file size  
 SDCSFGNAMEHDL:      EQU   0x6C ; get file name file handle  
 SDCSFGNAME:         EQU   0x6E ; get file name  
+SDCSTOTALSPACE:     EQU   0x72 ; get total space in sdcard  
+SDCSFREESPACE:      EQU   0x74 ; get free space in sdcard  
 
-; sdcard io commands start  
+; Commands that initiate I/O operations  
 SDCMDRESET:          EQU   0x0f  
 SDCMDLOAD:           EQU   0x0d  
 SDCMDSAVE:           EQU   0x0c   
@@ -121,6 +123,14 @@ SDCMDFTRUNCATE:      EQU   0x2C
 SDCMDLSOF:           EQU   0x2D  
 SDCMDFGETSIZE:       EQU   0x2E  
 SDCMDFGETNAME:       EQU   0x2F  
+SDCMDTOTALSPACE:     EQU   0x30  
+SDCMDFREESPACE:      EQU   0x31  
+
+# TODO
+Add the following features  
+- firmware version (ex: 1.07a = 10701 / 1.10c = 11003) (will be a called at command ztg80os startup)
+- format sdcard (will be a external command)
+
 
 # operations status and command codes
 https://docs.google.com/spreadsheets/d/1EDnzh6c8GuFteZskviRQ0HXl_1hdd2McFDgUcx4P_4A/edit?usp=sharing  
